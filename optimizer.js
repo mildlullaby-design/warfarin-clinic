@@ -31,8 +31,11 @@ function chooseRepresentations(oa,ob,na,nb){
     const tabs=na*a.tabs+nb*b.tabs;
     const distinct=new Set([...a.parts,...b.parts].map(p=>p.mg)).size;
     const halfDays=na*Number(a.split)+nb*Number(b.split);
-    const key=[tabs,distinct,halfDays,JSON.stringify(a.parts),JSON.stringify(b.parts)];
-    if(!best||cmp(key,best.key)<0) best={a,b,tabs,distinct,halfDays,key};
+    const maxStrengthsPerDay=Math.max(na>0?a.parts.length:0,nb>0?b.parts.length:0);
+    const mixedStrengthDays=na*Number(a.parts.length>1)+nb*Number(b.parts.length>1);
+    // Dose patterns are fixed here: use the same simplicity priorities as the final ranking.
+    const key=[maxStrengthsPerDay,mixedStrengthDays,halfDays,distinct,tabs,JSON.stringify(a.parts),JSON.stringify(b.parts)];
+    if(!best||cmp(key,best.key)<0) best={a,b,tabs,distinct,halfDays,maxStrengthsPerDay,mixedStrengthDays,key};
   }
   return best;
 }
@@ -51,12 +54,12 @@ function generateAll(strengths){
       // Equal 3/4 is impossible with 7 days.
       const doses=na>=nb?[...Array(na).fill(a),...Array(nb).fill(b)]:[...Array(nb).fill(b),...Array(na).fill(a)];
       const rows=doses.map(x=>x===a?repr.a.parts:repr.b.parts);
-      results.push({total, gap:round(b-a),distinct:near(a,b)?1:2,doses,rows,tabs:repr.tabs,strengthCount:repr.distinct,halfDays:repr.halfDays});
+      results.push({total, gap:round(b-a),distinct:near(a,b)?1:2,doses,rows,tabs:repr.tabs,strengthCount:repr.distinct,halfDays:repr.halfDays,maxStrengthsPerDay:repr.maxStrengthsPerDay,mixedStrengthDays:repr.mixedStrengthDays});
     }
   }
   return results;
 }
-function rank(r,target){return [round(Math.abs(r.total-target)),r.gap,r.distinct,0,r.doses.filter(x=>x===0).length,r.tabs,r.strengthCount,r.halfDays]}
+function rank(r,target){return [round(Math.abs(r.total-target)),r.gap,r.distinct,r.maxStrengthsPerDay,r.mixedStrengthDays,r.halfDays,r.strengthCount,r.doses.filter(x=>x===0).length,r.tabs]}
 function sortedUnique(list,target){
   const byPattern=new Map();
   for(const r of list){
@@ -107,7 +110,7 @@ function note(current,total,changed=false){
   if(near(total,current))return changed?`ปรับรูปแบบการกิน Warfarin โดยคงขนาดยา ${fmt(current)} mg/wk (0.0%)`:`คง Warfarin ${fmt(current)} mg/wk (0.0%)`;
   return `${total>current?'เพิ่ม':'ลด'} Warfarin ${fmt(current)} → ${fmt(total)} mg/wk (${total>current?'+':''}${pct}%)`;
 }
-const api={weeklyDose,percentChange,buildDailyOptions,generateAll,sortedUnique,customSearch,quickSearch,validateManual,note,BANDS,near,round};
+const api={weeklyDose,percentChange,buildDailyOptions,generateAll,rank,sortedUnique,customSearch,quickSearch,validateManual,note,BANDS,near,round};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.WarfarinEngine=api;
 })(typeof window!=='undefined'?window:globalThis);
