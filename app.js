@@ -1,6 +1,9 @@
 
 (function(){'use strict';const E=window.WarfarinEngine;const $=id=>document.getElementById(id);const DAYS=['จ','อ','พ','พฤ','ศ','ส','อา'];const number=v=>Number(v);const fmt=x=>Number(x.toFixed(3)).toString();const pct=(x,c)=>E.percentChange(c,x).toFixed(1);const qText=q=>Number(q.toFixed(2)).toString();
 let formulary;try{formulary=JSON.parse(localStorage.getItem('wf_formulary'))||[2,3,5]}catch{formulary=[2,3,5]}
+let savedFormulary=[...formulary],caseRevision=0;
+// Normalize only clinical note presentation; leave calculation/data modules intact.
+const formatCopiedNote=text=>text.replace(/→/g,'->');
 let allowed=[...formulary],old=Array.from({length:7},()=>({})),oldDays=new Set([0,1,2,3,4]),editDays=new Set([0]),quick=null,all=[],mode='custom',results={exact:[],alternatives:[]},tab='exact',selected=null,editing=null,visible=5;
 function el(tag,props={},children=[]){const n=document.createElement(tag);Object.assign(n,props);children.forEach(c=>n.append(c));return n}
 function invalidate(){document.dispatchEvent(new CustomEvent('warfarin:regimen-invalidated'));$('confirmedBox').classList.add('hidden');$('copyState').textContent=''}
@@ -28,16 +31,40 @@ function renderSelected(){if(!selected)return;const actual=totalOf(editing),c=ge
 function editRefresh(){if(!editing)return;renderSelected();$('editTable').innerHTML=tableHTML(editing);const err=E.validateManual(editing,allowed);$('editError').textContent=err||'';if(err){$('confirmedBox').classList.add('hidden')}else{showNote()}$('editStats').textContent=`Weekly Dose ${fmt(totalOf(editing))} mg · ${Number(pct(totalOf(editing),getCurrent()))>0?'+':''}${pct(totalOf(editing),getCurrent())}% จากเดิม`;}
 function editApply(replace){if(!editing||!editDays.size)return;const candidate=editing.map(x=>({...x}));const s=nval('editStrength'),q=nval('editQty');if(s===null||q===null)return;for(const i of editDays){if(replace)candidate[i]={};candidate[i][s]=(candidate[i][s]||0)+q}const err=E.validateManual(candidate,allowed);if(err){$('editError').textContent=err;return}editing=candidate;invalidate();editRefresh()}
 function showNote(){if(!editing)return;const err=E.validateManual(editing,allowed);if(err){$('confirmedBox').classList.add('hidden');return}const same=E.near(totalOf(editing),getCurrent());$('sameWrap').classList.toggle('hidden',!same);if(!same)$('changedPattern').checked=false;$('confirmedBox').classList.remove('hidden');updateNote();$('copyState').textContent='';document.dispatchEvent(new CustomEvent('warfarin:regimen-confirmed',{detail:{current:getCurrent(),actual:totalOf(editing),target:quick!==null?getCurrent()*(1+quick/100):nval('custom')}}))}
-function updateNote(){$('note').textContent=E.note(getCurrent(),totalOf(editing),$('changedPattern').checked)}
-$('settingsBtn').onclick=()=>$('settings').classList.toggle('hidden');$('addStrengthBtn').onclick=()=>{const v=nval('addStrength');if(v===null||v<=0||!Number.isFinite(v)||formulary.includes(v)){alert('กรุณาระบุขนาดเม็ดที่ถูกต้องและยังไม่มีในรายการ');return}formulary.push(v);formulary.sort((a,b)=>a-b);renderFormulary()};$('saveSettings').onclick=()=>{if(!formulary.length){alert('ต้องมีขนาดเม็ดอย่างน้อย 1 ชนิด');return}localStorage.setItem('wf_formulary',JSON.stringify(formulary));allowed=[...formulary];renderAllowed();renderFormulary();$('settings').classList.add('hidden');resetResults()};
-$('newPatient').onclick=()=>{allowed=[...formulary];renderAllowed();$('current').value='';$('custom').value='';quick=null;old=Array.from({length:7},()=>({}));oldRefresh();resetResults();renderTarget()};
+function updateNote(){$('note').textContent=formatCopiedNote(E.note(getCurrent(),totalOf(editing),$('changedPattern').checked))}
+$('settingsBtn').onclick=()=>$('settings').classList.toggle('hidden');$('addStrengthBtn').onclick=()=>{const v=nval('addStrength');if(v===null||v<=0||!Number.isFinite(v)||formulary.includes(v)){alert('กรุณาระบุขนาดเม็ดที่ถูกต้องและยังไม่มีในรายการ');return}formulary.push(v);formulary.sort((a,b)=>a-b);renderFormulary()};$('saveSettings').onclick=()=>{if(!formulary.length){alert('ต้องมีขนาดเม็ดอย่างน้อย 1 ชนิด');return}localStorage.setItem('wf_formulary',JSON.stringify(formulary));savedFormulary=[...formulary];allowed=[...formulary];renderAllowed();renderFormulary();$('settings').classList.add('hidden');resetResults()};
+function resetCase(){
+  caseRevision++;
+  formulary=[...savedFormulary];allowed=[...savedFormulary];
+  quick=null;all=[];results={exact:[],alternatives:[]};tab='exact';
+  old=Array.from({length:7},()=>({}));oldDays=new Set([0,1,2,3,4]);editDays=new Set([0]);
+  for(const id of ['current','custom','oldStrength','addStrength'])$(id).value='';
+  $('oldQty').value='0';$('editQty').value='0';$('windowPct').value='5';$('otherPct').value='5';
+  $('otherPct').classList.add('hidden');$('currentDetails').open=false;$('settings').classList.add('hidden');
+  $('changedPattern').checked=false;$('sameWrap').classList.add('hidden');
+  renderFormulary();renderAllowed();daysButtons('currentDays',oldDays);daysButtons('editDays',editDays);oldRefresh();resetResults();
+  for(const id of ['note','copyState','editTable','editStats','editError','error','searchTime','notFound'])$(id).textContent='';
+  $('resultSummary').textContent='ยังไม่ได้ค้นหา';
+  $('exactTab').textContent='Exact Match';$('altTab').textContent='Alternatives';
+  $('exactTab').classList.add('selected');$('altTab').classList.remove('selected');
+  document.dispatchEvent(new CustomEvent('warfarin:case-reset'));
+  renderTarget();
+  // Keep keyboard focus in the fresh case, including when called from the hidden interaction module.
+  $('current').focus({preventScroll:true});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$('newPatient').onclick=resetCase;
+$('clearCase').onclick=()=>{if(window.confirm('ล้างข้อมูลที่กรอกทั้งหมดสำหรับเคสนี้?'))resetCase()};
+const updateBackToTop=()=>$('backToTop').classList.toggle('hidden',window.scrollY<=300);
+window.addEventListener('scroll',updateBackToTop,{passive:true});updateBackToTop();
+$('backToTop').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
 $('oldAdd').onclick=()=>oldApply(false);$('oldReplace').onclick=()=>oldApply(true);$('oldSet').onclick=()=>{const s=oldStrength(),q=nval('oldQty');if(!Number.isFinite(s)||s<=0||!Number.isFinite(q)){alert('กรอกขนาดเม็ดเดิมให้ถูกต้อง');return}for(const i of oldDays){old[i][s]=q;delete old[i].__skip}oldRefresh()};$('oldClear').onclick=()=>{for(const i of oldDays)old[i]={__skip:true};oldRefresh()};$('useOld').onclick=()=>{$('current').value=fmt(totalOf(old));quick=null;$('custom').value='';renderTarget();resetResults();$('currentDetails').open=false};
 $('current').oninput=()=>{renderTarget();resetResults()};$('custom').oninput=()=>{quick=null;renderTarget();resetResults()};$('windowPct').onchange=()=>{$('otherPct').classList.toggle('hidden',$('windowPct').value!=='custom');resetResults()};$('otherPct').oninput=resetResults;
 $('quickButtons').replaceChildren(...[-5,-10,-20,5,10,20].map(n=>{const b=el('button',{type:'button',textContent:`${n>0?'+':''}${n}%`});b.dataset.quick=n;b.onclick=()=>{quick=n;$('custom').value='';renderTarget();resetResults();doSearch()};return b}));$('search').onclick=doSearch;
 $('exactTab').onclick=()=>{tab='exact';visible=5;renderResults()};$('altTab').onclick=()=>{tab='alternatives';visible=5;renderResults()};$('showMore').onclick=()=>{visible+=5;renderResults()};
-$('editBtn').onclick=()=>{$('manualEditor').classList.toggle('hidden');editDays=new Set([0]);daysButtons('editDays',editDays);editRefresh()};$('editAdd').onclick=()=>editApply(false);$('editReplace').onclick=()=>editApply(true);$('editSet').onclick=()=>{if(!editing||!editDays.size)return;const candidate=editing.map(x=>({...x})),s=nval('editStrength'),q=nval('editQty');for(const i of editDays)candidate[i][s]=q;const err=E.validateManual(candidate,allowed);if(err){$('editError').textContent=err;return}editing=candidate;invalidate();editRefresh()};$('changedPattern').onchange=updateNote;$('copy').onclick=async()=>{if(!editing||E.validateManual(editing,allowed))return;try{await navigator.clipboard.writeText($('note').textContent);$('copyState').textContent='คัดลอกแล้ว'}catch{$('copyState').textContent='เบราว์เซอร์ไม่อนุญาตให้คัดลอกอัตโนมัติ เลือกข้อความในกรอบแทน'}};
+$('editBtn').onclick=()=>{$('manualEditor').classList.toggle('hidden');editDays=new Set([0]);daysButtons('editDays',editDays);editRefresh()};$('editAdd').onclick=()=>editApply(false);$('editReplace').onclick=()=>editApply(true);$('editSet').onclick=()=>{if(!editing||!editDays.size)return;const candidate=editing.map(x=>({...x})),s=nval('editStrength'),q=nval('editQty');for(const i of editDays)candidate[i][s]=q;const err=E.validateManual(candidate,allowed);if(err){$('editError').textContent=err;return}editing=candidate;invalidate();editRefresh()};$('changedPattern').onchange=updateNote;$('copy').onclick=async()=>{if(!editing||E.validateManual(editing,allowed))return;const revision=caseRevision;try{await navigator.clipboard.writeText($('note').textContent);if(revision===caseRevision)$('copyState').textContent='คัดลอกแล้ว'}catch{if(revision===caseRevision)$('copyState').textContent='เบราว์เซอร์ไม่อนุญาตให้คัดลอกอัตโนมัติ เลือกข้อความในกรอบแทน'}};
 // The interaction module supplies arithmetic targets to this existing search path.
-window.WarfarinDoseApp={getCurrent,openTarget(target,current){if(getCurrent()!==current||!Number.isFinite(current)||current<=0||!Number.isFinite(target)||target<0)return false;quick=null;$('custom').value=String(target);resetResults();renderTarget();doSearch();return true},clearInteractionTarget(target){if(quick===null&&nval('custom')===target){$('custom').value='';renderTarget();resetResults()}}};
+window.WarfarinDoseApp={getCurrent,resetCase,formatCopiedNote,openTarget(target,current){if(getCurrent()!==current||!Number.isFinite(current)||current<=0||!Number.isFinite(target)||target<0)return false;quick=null;$('custom').value=String(target);resetResults();renderTarget();doSearch();return true},clearInteractionTarget(target){if(quick===null&&nval('custom')===target){$('custom').value='';renderTarget();resetResults()}}};
 qtyOptions('oldQty',true);qtyOptions('editQty',false);daysButtons('currentDays',oldDays);daysButtons('editDays',editDays);renderFormulary();renderAllowed();oldRefresh();renderTarget();
 })();
 

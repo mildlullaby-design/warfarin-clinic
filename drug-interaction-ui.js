@@ -89,7 +89,7 @@
     const text=window.WarfarinInteractionEmr.format(entry,calc,confirmed,context());
     if(!text)return box;
     const heading=node('h4','EMR note'), caption=node('p','ข้อความสำหรับบันทึกในเวชระเบียน','muted');
-    const preview=node('p',text,'emr-note'); preview.style.whiteSpace='pre-wrap';
+    const preview=node('p',window.WarfarinDoseApp.formatCopiedNote(text),'emr-note'); preview.style.whiteSpace='pre-wrap';
     const status=node('span','','muted');status.setAttribute('role','status');
     box.append(heading,caption,preview,button('คัดลอก EMR note',async()=>{
       try { await navigator.clipboard.writeText(preview.textContent);status.textContent='คัดลอกแล้ว';setTimeout(()=>status.textContent='',2000); }
@@ -100,7 +100,7 @@
     const preview=$('interactionDetails').querySelector('.emr-note');
     if(preview&&detailEntry){
       const calc=state.entry?.id===detailEntry.id?state.calculation:null;
-      preview.textContent=window.WarfarinInteractionEmr.format(detailEntry,calc,confirmed,context())||'';
+      preview.textContent=window.WarfarinDoseApp.formatCopiedNote(window.WarfarinInteractionEmr.format(detailEntry,calc,confirmed,context())||'');
     }
   }
   document.addEventListener('warfarin:regimen-confirmed',event=>{
@@ -181,8 +181,12 @@
     $('current').dispatchEvent(new Event('input', { bubbles: true }));
   });
   document.addEventListener('warfarin:current-dose-changed', syncCurrent);
-  $('newPatient').addEventListener('click', () => {
-    state.clear(); confirmed=null; customMode = false; handedOff = null; $('interactionSearch').value = ''; $('interactionDetails').classList.add('hidden'); renderAdjustment(); renderResults(); syncCurrent();
+  document.addEventListener('warfarin:case-reset', () => {
+    state.clear(); state.syncCurrent(null); confirmed=null; customMode=false; handedOff=null; detailEntry=null;
+    $('interactionSearch').value='';$('interactionCurrent').value='';
+    $('interactionDetails').replaceChildren();$('interactionDetails').classList.add('hidden');
+    $('interactionReview').classList.add('hidden');$('interactionReviewToggle').setAttribute('aria-expanded','false');
+    renderAdjustment();renderResults();showModule('dose');
   });
   $('interactionSearch').addEventListener('input', () => {
     state.clear(); confirmed=null; handedOff=null; customMode = false; $('interactionDetails').classList.add('hidden'); renderAdjustment(); renderResults();

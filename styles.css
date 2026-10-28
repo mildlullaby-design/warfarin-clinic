@@ -801,3 +801,24 @@ tbody tr:hover {
 .interaction-more h4 { margin: 10px 0 4px; }
 @media (max-width: 640px) { .interaction-review-controls { grid-template-columns: 1fr; } .interaction-review-nav select { flex-basis: 100%; } }
 .interaction-detail-field { white-space: pre-line; margin-block: 6px 12px; }
+
+/* Reserve scroll space so the floating utilities cannot trap the last controls. */
+html { scroll-padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
+.wrap { padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+button, input, select, summary { scroll-margin-bottom: 90px; }
+.case-utilities {
+  position: fixed;
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 3px 12px rgb(63 70 92 / 12%);
+}
+.case-utilities button { min-height: 44px; padding: 8px 12px; font-size: .9rem; }
+.case-utilities .clear-case { color: var(--rose); border-color: var(--rose); }
+.case-utilities .clear-case:hover { background: var(--rose-soft); }
