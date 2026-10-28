@@ -59,7 +59,7 @@ function generateAll(strengths){
   }
   return results;
 }
-function rank(r,target){return [round(Math.abs(r.total-target)),r.distinct,r.maxStrengthsPerDay,r.mixedStrengthDays,r.halfDays,r.gap,r.strengthCount,r.doses.filter(x=>x===0).length,r.tabs]}
+function rank(r,target){return [round(Math.abs(r.total-target)),r.doses.filter(x=>x===0).length,r.distinct,r.maxStrengthsPerDay,r.mixedStrengthDays,r.halfDays,r.gap,r.strengthCount,r.tabs]}
 function sortedUnique(list,target){
   const byPattern=new Map();
   for(const r of list){
