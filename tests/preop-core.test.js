@@ -206,7 +206,7 @@ test('Neuraxial LMWH bridge remains a clinic Final plan with anesthesia handoff'
 test('Neuraxial unknown is a handoff note, not a blocking clinical signoff',()=>{
   const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
   assert.doesNotMatch(ui,/Neuraxial ASRA review: กรุณายืนยัน/);
-  assert.match(ui,/Anesthesia technique not established/);
+  assert.match(ui,/preAsraReview/);
   assert.match(ui,/Clinical reminders \(ไม่ใช่ช่องที่กรอกค้าง\)/);
 });
 test('Apixaban 2.5mg with planned neuraxial does not auto-continue minimal-risk surgery',()=>{
