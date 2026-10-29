@@ -15,6 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -196,7 +197,7 @@
         <div class="field"><label for="preProcedure">Procedure</label><input id="preProcedure" placeholder="Procedure name (clinician classified)"></div>
         <div class="field"><label for="preBleed">Procedure bleeding risk</label><select id="preBleed"><option value="">Unclassified — physician review</option><option value="minimal">Minimal</option><option value="lowmod">Low–Moderate</option><option value="high">High</option></select></div>
         <div class="field"><label for="preDate">Operation date</label><input id="preDate" type="date"><small>หากไม่ทราบวันที่ จะได้เพียง Draft</small></div>
-        <div class="field"><label for="preTime">Operation / neuraxial time (if known)</label><input id="preTime" type="time"></div>
+        <div class="field"><label for="preTime">เวลาเริ่มผ่าตัด (Optional)</label><input id="preTime" type="time"><small>ไม่บังคับกรอก; หากมี neuraxial ให้ทีมวิสัญญียืนยัน timing แยกต่างหาก</small></div>
         <div class="field"><label for="preName">Patient name</label><input id="preName" autocomplete="off" placeholder="ชื่อผู้ป่วย (ไม่บันทึก)"></div>
         <div class="field"><label for="preAge">Age (years)</label><input id="preAge" type="number" min="18" max="120"></div>
         <div class="field"><label for="preSex">Sex for Cockcroft–Gault</label><select id="preSex"><option value="">เลือก</option><option value="male">Male</option><option value="female">Female</option></select></div>
