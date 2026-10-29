@@ -182,6 +182,52 @@
       $('preDailyTotal').textContent='รวม '+total.toFixed(1)+' mg/week';
     }else $('preDailyTotal').textContent=values==='incomplete'?'กรอกให้ครบ 7 วัน (ระบุ 0 ได้)':'';
   });
+  // Enoxaparin dose: suggest from actual body weight, allow clinician adjustment BEFORE generating calendar.
+  const lmwhDoseWidget=document.createElement('div');
+  lmwhDoseWidget.className='pre-lmwh-dose';
+  lmwhDoseWidget.innerHTML='<div class="pre-form-grid">'+
+    '<div class="field"><label for="preLmwhDose">Enoxaparin mg/dose (ปรับได้)</label>'+
+    '<input type="number" id="preLmwhDose" min="0.01" step="0.1" placeholder="คำนวณจากน้ำหนัก">'+
+    '<small>เริ่มต้น 1 mg/kg/dose SC q12h; ความเข้มข้น 100 mg/mL</small></div>'+
+    '<div class="field"><label>ปริมาตรฉีดตามขนาดยาที่เลือก</label><strong id="preLmwhVolume">กรอกน้ำหนักเพื่อคำนวณ</strong>'+
+    '<button type="button" id="preLmwhResetDose">Reset: 1 mg/kg</button></div></div>';
+  $('preBridgeFields').append(lmwhDoseWidget);
+  let lmwhDoseEdited=false;
+  function refreshLmwhDose(){
+    if(!lmwhDoseEdited){
+      const w=num('preWeight'),mgKg=num('preLmwhMgKg');
+      $('preLmwhDose').value=Number.isFinite(w)&&w>0&&Number.isFinite(mgKg)&&mgKg>0?String(Number((w*mgKg).toFixed(2))):'';
+    }
+    const mg=num('preLmwhDose');
+    const d=Number.isFinite(mg)&&mg>0?core.enoxaparin(mg,1):null;
+    $('preLmwhVolume').textContent=d?mg+' mg = '+d.volume+' mL SC/dose'+(d.multiAmpoule?' (มากกว่า 1 ampoule)':''):'รอข้อมูลขนาดยา';
+  }
+  $('preLmwhDose').addEventListener('input',()=>{lmwhDoseEdited=true;refreshLmwhDose();});
+  $('preLmwhResetDose').onclick=()=>{lmwhDoseEdited=false;refreshLmwhDose();changed();};
+  $('preWeight').addEventListener('input',refreshLmwhDose);
+  $('preLmwhMgKg').addEventListener('input',()=>{lmwhDoseEdited=false;refreshLmwhDose();});
+  refreshLmwhDose();
+  // AF bridging suggestion is read-only guideline guidance, not an automatic order.
+  const afAdvice=document.createElement('div');
+  afAdvice.className='pre-guideline-advice';afAdvice.id='preAFBridgeAdvice';
+  afAdvice.innerHTML='<strong>Guideline suggest: No routine bridging</strong><p class="muted">CHEST 2022 recommends against heparin bridging in AF.</p>';
+  $('preAFExtra').append(afAdvice);
+  const afOverride=document.createElement('div');afOverride.className='pre-subsection hidden';afOverride.id='preAFBridgeOverride';
+  afOverride.innerHTML='<label for="preAFBridgeRationale">AF bridging override - เหตุผลสำหรับ individual decision</label>'+
+    '<textarea id="preAFBridgeRationale" rows="2" placeholder="ระบุเหตุผลและแนวทางที่แพทย์ยืนยัน เนื่องจาก CHEST 2022 ไม่แนะนำ routine bridging"></textarea>';
+  $('preBridgeFields').append(afOverride);
+  function refreshAfAdvice(){
+    const selection=core.afBridgeRecommendation({
+      recentStroke:val('preAFStroke')==='recent'?'yes':'no',
+      priorPeriopClot:val('preAFClot')==='yes'?'yes':'no'
+    });
+    $('preAFBridgeAdvice').innerHTML=selection.recommendation==='individual-review'
+      ?'<strong>Guideline suggest: Individual physician review (ไม่ auto-bridge)</strong><p class="muted">CHEST 2022 แนะนำไม่ให้ routine bridging สำหรับ AF; recent embolism หรือ prior clot on interruption ต้องประเมินเฉพาะราย</p>'
+      :'<strong>Guideline suggest: ไม่ทำ routine bridging</strong><p class="muted">CHEST 2022: Strong recommendation against heparin bridging for AF (คะแนน CHA2DS2-VA อย่างเดียวไม่ใช่เหตุผลให้ bridging)</p>';
+  }
+  $('preAFStroke').addEventListener('change',refreshAfAdvice);
+  $('preAFClot').addEventListener('change',refreshAfAdvice);
+  refreshAfAdvice();
   $('preApixDose').insertAdjacentHTML('beforeend','<option value="other">Other (Physician review)</option>');
   const apixOther=document.createElement('div');apixOther.className='field hidden';apixOther.id='preApixOtherWrap';
   apixOther.innerHTML='<label for="preApixOther">Other Apixaban regimen (ระบุเพื่อทบทวน)</label><input id="preApixOther" placeholder="ขนาดยาและความถี่ เช่น 5 mg OD"><small>Non-standard dose: Draft only จนกว่าจะตรวจ clinical rules</small>';
@@ -207,7 +253,7 @@
       recentVTE:indication==='vte'&&recent?'yes':'no',severeThrombophilia:thromb?'yes':'no',
       priorPeriopClot:clot==='yes'?'yes':'no',riskReviewed:checked('preRiskV2Confirm'),
       bridgeChoice:val('preBridge'),bridgeConfirmed:checked('preBridgeConfirmed'),
-      lmwhMgPerKg:val('preLmwhMgKg'),lastDoseDateTime:val('preLastApix'),renalHoldDays:val('preRenalHold'),
+      lmwhMgPerKg:val('preLmwhMgKg'),lmwhMgPerDose:val('preLmwhDose'),lastDoseDateTime:val('preLastApix'),renalHoldDays:val('preRenalHold'),
       physicianConfirmed:checked('preConfirm')&&confirmed===revision
     };
   }
@@ -232,6 +278,9 @@
     if(p.anticoagulant==='warfarin' && (!Number.isFinite(num('preWeekly'))||num('preWeekly')<=0||!val('preTargetInr')))b.push('Warfarin: ระบุ Weekly dose และ Target INR');
     if(p.anticoagulant==='warfarin'&&dailyValues()==='incomplete')b.push('Warfarin regimen รายวัน: ต้องกรอกครบทั้ง 7 วัน หรือเว้นว่างทั้งหมด');
     if(p.anticoagulant==='apixaban'&&val('preApixDose')==='other')b.push('Other Apixaban regimen: ต้องตรวจแผนและขนาดยากับแพทย์ก่อนใช้เป็น Final');
+    if(p.anticoagulant==='warfarin'&&p.bridgeChoice==='yes'&&p.indication==='af'&&!val('preAFBridgeRationale')){
+      b.push('AF: CHEST 2022 ไม่แนะนำ routine bridging; ถ้าเลือก bridging ต้องระบุเหตุผลเฉพาะรายก่อน Final');
+    }
     if(p.neuraxial!=='no')b.push('Neuraxial/deep plexus: ต้องยืนยันแผนกับวิสัญญีและตรวจ ASRA timing ก่อน Final.');
     return b;
   }
@@ -240,6 +289,7 @@
     $('preWarfarinFields').classList.toggle('hidden',drug!=='warfarin');
     $('preApixFields').classList.toggle('hidden',drug!=='apixaban');
     $('preBridgeFields').classList.toggle('hidden',drug!=='warfarin'||!bridge);
+    $('preAFBridgeOverride').classList.toggle('hidden',!(drug==='warfarin'&&ind==='af'&&bridge));
     $('preApixOtherWrap').classList.toggle('hidden',val('preApixDose')!=='other');
     $('preAFExtra').classList.toggle('hidden',ind!=='af');
     $('preValveExtra').classList.toggle('hidden',ind!=='mechanical');
@@ -408,7 +458,7 @@
       else if(e.tagName==='SELECT')e.selectedIndex=0;
       else e.value='';
     });
-    $('preLmwhMgKg').value='1';$('preDailyTotal').textContent='';mappedProcedure=false;$('preBleed').disabled=false;$('preOtherVerified').checked=false;$('preOtherReviewWrap').classList.add('hidden');
+    $('preLmwhMgKg').value='1';lmwhDoseEdited=false;refreshLmwhDose();$('preDailyTotal').textContent='';mappedProcedure=false;$('preBleed').disabled=false;$('preOtherVerified').checked=false;$('preOtherReviewWrap').classList.add('hidden');
     rows=[];activePlan=null;confirmed=-1;revision++;
     $('prePrintSurface').innerHTML='';$('preOPDNote').value='';$('preCopyStatus').textContent='';
     resultScreen.classList.add('hidden');inputScreen.classList.remove('hidden');switchFields();
