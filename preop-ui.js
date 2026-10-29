@@ -53,7 +53,7 @@
   resultScreen.append(output,print);
 
   // Only the new indication-specific clinical-risk form is displayed.
-  $('preTime')?.closest('.field')?.classList.add('pre-conditional-time');
+  // Surgery clock time is optional; leave it visible for convenient entry.
   $('preLastApix')?.closest('.field')?.classList.add('pre-conditional-time');
 
   const risk=document.createElement('section');risk.className='pre-subsection';risk.id='preClinicalRisk';
@@ -327,18 +327,28 @@
       let drug='',manage='';
       const holding=v.action==='hold'&&Number.isInteger(v.holdDays)&&day>=-v.holdDays&&day<=0;
       if(day<0){
-        drug=v.action==='continue'?'Continue '+LABEL[p.anticoagulant]:(holding?'Hold '+LABEL[p.anticoagulant]:'Usual '+LABEL[p.anticoagulant]+' regimen');
-        const dose=p.anticoagulant==='warfarin'&&!holding?dailyFor(day,p.operationDate):null;
-        if(dose!==null)drug+=' ('+dose+' mg)';
+        if(p.anticoagulant==='warfarin'){
+          const dose=dailyFor(day,p.operationDate);
+          const current=Number.isFinite(dose)?(dose===0?'0 mg (scheduled day off)':dose+' mg'):((p.weeklyDose||'-')+' mg/week (ตามตารางยาเดิม)');
+          drug=holding?'Hold Warfarin (current '+current+')':('Warfarin '+current);
+        } else {
+          drug=v.action==='continue'?'Continue Apixaban':(holding?'Hold Apixaban':'Apixaban '+(p.apixDose||'-')+' mg BID');
+        }
       }
       if(day===0){
         drug='PROCEDURE';
         manage='ผ่าตัด / ประเมิน hemostasis ก่อน restart';
       }
       if(day>0){
-        drug='Post-op: treating team to confirm';
+        drug=p.anticoagulant==='warfarin'
+          ?'Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
+            ?dailyFor(day,p.operationDate)+' mg/day'
+            :(p.weeklyDose||'-')+' mg/week (ตามตารางยาเดิม)')+' - conditional restart'
+          :'Post-op: treating team to confirm';
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===1)
-          manage='Suggest restart Warfarin '+(dailyFor(day,p.operationDate)===null?'usual maintenance dose':dailyFor(day,p.operationDate)+' mg')+' if stable, no bleeding, hemostasis adequate';
+          manage='Suggest restart Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
+            ?dailyFor(day,p.operationDate)+' mg'
+            :(p.weeklyDose||'-')+' mg/week ตามตารางยาเดิม')+' if stable, no bleeding, hemostasis adequate';
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===5)
           manage='Suggested INR check (4 วันหลัง planned restart Day +1); ถ้า restart จริงช้ากว่านี้ให้เลื่อน INR check. Target INR '+val('preTargetInr');
         if(p.anticoagulant==='apixaban'&&v.action==='hold'&&((p.bleedingRisk==='high'&&day===2)||(p.bleedingRisk!=='high'&&day===1)))
@@ -425,7 +435,6 @@
       '<br>Bleeding risk: '+esc(LABEL[p.bleedingRisk]||'-')+' · CrCl: '+esc(p.crCl||'-')+' mL/min'+
       (p.indication==='mechanical'?' · Valve: '+esc(selectedValues('preValveAt').join('+')||'Unknown'):'')+
       (p.anticoagulant==='warfarin'?' · Warfarin '+esc(p.weeklyDose)+' mg/wk · Target INR '+esc(val('preTargetInr')):' · Apixaban '+esc(p.apixDose)+' mg BID')+
-      '<br>'+esc(afRecommendationText(p))+
       '</div>';
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>Date</th><th>Drug</th><th>Management / Suggestion</th></tr></thead><tbody>'+
       rows.map(r=>'<tr><td>'+r.day+'</td><td>'+esc(r.date)+'</td><td>'+esc(r.drug)+'</td><td>'+esc(r.manage)+'</td></tr>').join('')+'</tbody></table>';
