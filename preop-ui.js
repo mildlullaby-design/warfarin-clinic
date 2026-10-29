@@ -540,6 +540,8 @@
     if(bridgeFootnote(p,v))lines.push(bridgeFootnote(p,v));
     if(p.indication==='af'&&p.bridgeChoice==='yes'&&val('preAFBridgeRationale'))
       lines.push('Individual AF bridging rationale: '+val('preAFBridgeRationale'));
+    if(p.anticoagulant==='warfarin'&&v.action==='hold')
+      lines.push('INR follow-up ต้องนับ 4 วันจากวันที่ restart Warfarin จริง; ถ้า restart ล่าช้าให้ปรับวันตรวจ');
     if(blockers.length)lines.push('รอทบทวน: '+blockers.join('; '));
     return lines.join('\n').replace(/[→↑↓≥≤]/g,' ');
   };
@@ -583,7 +585,7 @@
           (issueTarget(x)?'<button type="button" class="pre-goto-field" data-fix-input="'+esc(issueTarget(x))+'">ไปกรอก</button>':'')+
           '</li>').join('')+'</ul>'
       :'<p>ไม่มีข้อมูลที่บังคับทบทวนเพิ่มเติม</p>';
-    if(v.warnings.length)$('preSafety').innerHTML+='<h3>Safety reminders</h3><ul>'+v.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+    if(v.warnings.length)$('preSafety').innerHTML+='<div class="pre-clinical-reminders"><h3>Clinical reminders (ไม่ใช่ช่องที่กรอกค้าง)</h3><ul>'+v.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
     $('prePlan').innerHTML='<p><strong>Guideline suggestion:</strong> '+esc(v.action==='continue'?'Continue':v.action==='hold'?'Interrupt / hold '+v.holdDays+' days':'Physician review')+
       '; Bridging selected: '+esc(v.bridging?'Yes (physician-selected)':'No')+'</p>'+
       (afRecommendationText(p)?'<p class="pre-guideline-advice">'+esc(afRecommendationText(p))+'</p>':'')+
