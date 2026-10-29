@@ -498,7 +498,7 @@
         }
         if(day===-1){
           manage=eligibleLmwh
-            ? 'Hold enoxaparin at least 24 h before surgery'
+            ? 'Hold enoxaparin at least 24 h before\nsurgery'
             :'Bridging requires physician plan: do not administer LMWH pending review';
         }
         if(day>0&&(day===1||day===2||day===3)){
