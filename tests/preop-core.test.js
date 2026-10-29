@@ -92,7 +92,7 @@ test('LMWH dose rejects invalid manual override, rather than silently reverting'
 test('table code includes day minus one INR check and avoids repetitive INR injection condition',()=>{
   const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
   assert.match(ui,/if\(day===-1\)/);
-  assert.match(ui,/Hold enoxaparin at least 24 h before surgery/);
+  assert.match(ui,/Hold enoxaparin at least 24 h before\\nsurgery/);
   assert.match(ui,/bridgeFootnote/);
   assert.doesNotMatch(ui,/ONLY if INR subtherapeutic and start confirmed/);
 });
