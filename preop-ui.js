@@ -422,7 +422,7 @@
   function bridgeFootnote(p,v){
     if(p.anticoagulant!=='warfarin'||p.bridgeChoice!=='yes') return '';
     if(!hasSafeLmwh(p,v))return 'LMWH bridging ยังไม่พร้อมออกคำสั่ง: ต้องทบทวน renal function, dose และ physician confirmation ก่อน';
-    return 'Bridging note: เริ่ม therapeutic Enoxaparin หลัง INR ต่ำกว่า therapeutic range ตามผลตรวจที่แพทย์ประเมินก่อนเริ่ม (ไม่สั่งตรวจ INR ทุกวันโดยอัตโนมัติ). Last therapeutic dose อย่างน้อย 24 ชั่วโมงก่อนหัตถการ; Day -1 AM เท่านั้น, งด PM. ยืนยันเวลาฉีดจริงเทียบกับเวลาเริ่มผ่าตัด (12 ชั่วโมงใช้สำหรับ prophylactic dose ไม่ใช่ therapeutic bridging). ถ้า Neuraxial ต้องใช้ ASRA timing เพิ่มเติม';
+    return 'Bridging note: Start Enoxaparin เมื่อ INR ต่ำกว่า therapeutic range ตามการประเมินของแพทย์ (ไม่สั่งตรวจ INR ทุกวันโดยอัตโนมัติ)';
   }
   function afRecommendationText(p){
     if(p.indication!=='af'||p.anticoagulant!=='warfarin')return '';
@@ -591,27 +591,18 @@
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>Date</th><th>Drug</th><th>Management / Suggestion</th></tr></thead><tbody>'+
       rows.map(r=>printableRow(r,p)).join('')+'</tbody></table>';
     const inrTarget=core.preopInrRequirement({anticoagulant:p.anticoagulant,action:v.action,neuraxial:p.neuraxial});
-    const anestheticHandoff=p.neuraxial!=='no'
-      ?'<p class="pre-print-note"><strong>ANESTHESIA HANDOFF:</strong> '+esc(p.neuraxial==='yes'
-        ?'Neuraxial/deep plexus planned: Anesthesiologist to verify INR, exact anticoagulant last dose and catheter timing per ASRA before block. Clinic medication plan is NOT neuraxial clearance.'
-        :'Anesthesia technique not established: if neuraxial/deep plexus is selected, anesthesiologist must review ASRA interruption, INR and catheter plan before block.')+'</p>'
-      :'';
     const anesthesiaAlerts=v.warnings.filter(x=>x.startsWith('ANESTHESIA ALERT:'));
     const bridgingText=bridgeFootnote(p,v);
-    const bridgingParts=bridgingText
-      ?bridgingText.replace(/^Bridging note:\s*/i,'')
-        .split(/\.\s+(?=Last therapeutic|ยืนยัน|ถ้า Neuraxial)/)
-        .map((part,i,items)=>part.trim()+(i<items.length-1?'.':''))
-      :[];
-    const bridgingPrint=bridgingParts.length
+    const bridgingPrint=bridgingText
       ?'<section class="pre-bridging-print"><strong>Bridging note:</strong>'+
-        bridgingParts.map(part=>'<p>'+esc(part)+'</p>').join('')+'</section>'
+        '<ul><li>'+esc(bridgingText.replace(/^Bridging note:\\s*/i,''))+'</li></ul></section>'
       :'';
     const warn=(blocked?'<p class="pre-print-warning">DRAFT - NOT FOR MEDICATION ORDERS. Pending review.</p>':'')+
       anesthesiaAlerts.map(x=>'<p class="pre-print-warning">'+esc(x)+'</p>').join('')+
-      (inrTarget?'<p class="pre-print-note"><strong>Pre-op INR goal:</strong> '+esc(inrTarget.label)+'. '+esc(inrTarget.advice)+'</p>':'')+
+      (inrTarget?'<p class="pre-print-note"><strong>INR ก่อนผ่าตัด:</strong> '+esc(inrTarget.kind==='neuraxial'
+        ?'อยู่ในช่วงปกติของห้องปฏิบัติการ'
+        :'<1.5 (หากไม่ถึงเกณฑ์ ให้ปรึกษาทีมผ่าตัดก่อนดำเนินการ)')+'</p>':'')+
       bridgingPrint+
-      anestheticHandoff+
       '<p class="pre-print-note">Post-op actions are CONDITIONAL: assess hemostasis/no bleeding and treating physician confirmation. Dates are suggested, not automatic orders.</p>';
     const footer='<footer class="pre-print-footer">'+
       '<div class="pre-signature-block">'+
