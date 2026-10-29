@@ -946,3 +946,5 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
   #prePrintSurface .pre-print-note,#prePrintSurface .pre-print-warning{font-size:9.5px!important}
   #prePrintSurface .pre-print-footer{font-size:10px}
 }
+
+.preop-module .pre-safety.pre-blocking{border:2px solid #bd2536;border-radius:10px;padding:12px;background:#fff2f2;color:#8a1f2e;margin:10px 0}
