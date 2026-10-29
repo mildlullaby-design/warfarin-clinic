@@ -210,21 +210,21 @@
     return {p,v,blockers:[...v.blockers,...extra]};
   }
   const noteText=(p,v,blockers)=>{
-    const lines=['Pre-op anticoagulant plan'+(blockers.length?' (DRAFT - PENDING REVIEW)':''),
-      'Indication: '+(LABEL[p.indication]||'-')+', on '+(LABEL[p.anticoagulant]||'-'),
-      'Procedure: '+(p.procedure||'-')+'; Operation date: '+(p.operationDate||'-'),
-      'Bleeding risk: '+(LABEL[p.bleedingRisk]||'Unclassified')+'; Thrombotic risk: physician-reviewed per indication',
+    const lines=['วางแผน Pre-op anticoagulant'+(blockers.length?' (DRAFT - รอทบทวน)':''),
+      'Indication: '+(LABEL[p.indication]||'-')+', ยา '+(LABEL[p.anticoagulant]||'-'),
+      'Procedure: '+(p.procedure||'-')+'; วันผ่าตัด: '+(p.operationDate||'-'),
+      'Bleeding risk: '+(LABEL[p.bleedingRisk]||'Unclassified')+'; Thrombotic risk: ประเมินตาม indication',
       'CrCl: '+(p.crCl||'-')+' mL/min',
-      'Plan: '+(v.action==='continue'?'continue usual anticoagulant':v.action==='hold'?'hold '+LABEL[p.anticoagulant]+' from Day -'+v.holdDays:'individualized interruption plan pending')];
+      'แผนก่อนผ่าตัด: '+(v.action==='continue'?'continue ยาเดิม':v.action==='hold'?'หยุด '+LABEL[p.anticoagulant]+' ตั้งแต่ Day -'+v.holdDays:'รอ individualized plan')];
     if(p.anticoagulant==='warfarin'){
-      lines.push('Warfarin: '+(p.weeklyDose||'-')+' mg/week; Target INR: '+(val('preTargetInr')||'-')+'; Bridging: '+(v.bridging?'physician-confirmed conditional LMWH':'not planned'));
-      lines.push('Post-op: suggest restart usual Warfarin when hemostasis adequate and treating physician approves.');
-      lines.push('Suggest INR check 4 days after actual Warfarin restart; adjust date if restart delayed.');
+      lines.push('Warfarin: '+(p.weeklyDose||'-')+' mg/week; Target INR: '+(val('preTargetInr')||'-')+'; Bridging: '+(v.bridging?'conditional LMWH (แพทย์ยืนยันแล้ว)':'ไม่มีแผน bridging'));
+      lines.push('หลังผ่าตัด: พิจารณา restart Warfarin ขนาดเดิม เมื่อ hemostasis adequate, no bleeding และแพทย์ผู้ดูแลยืนยัน');
+      lines.push('เสนอ INR check 4 วันหลัง restart Warfarin จริง; ปรับวันนัดหาก restart ล่าช้า');
     }else{
-      lines.push('Apixaban: '+(p.apixDose||'-')+' mg BID; no routine therapeutic bridging.');
-      lines.push('Post-op: conditional Apixaban restart according to bleeding risk, adequate hemostasis and treating physician approval.');
+      lines.push('Apixaban: '+(p.apixDose||'-')+' mg BID; ไม่ให้ therapeutic bridging เป็น routine');
+      lines.push('หลังผ่าตัด: พิจารณา restart Apixaban ตาม bleeding risk เมื่อ hemostasis adequate และแพทย์ผู้ดูแลยืนยัน');
     }
-    if(blockers.length)lines.push('Pending review: '+blockers.join('; '));
+    if(blockers.length)lines.push('รอทบทวน: '+blockers.join('; '));
     return lines.join('\n').replace(/[→↑↓≥≤]/g,' ');
   };
   function buildTable(){
