@@ -1208,3 +1208,47 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
     margin-top:2mm!important;font-size:8pt!important;
   }
 }
+
+
+/* Consolidated A4 footer notes: smaller, consistent type, bold headings only. */
+@media screen {
+  #prePrintSurface .pre-print-notes{
+    margin-top:4mm;padding-top:2mm;border-top:1px solid #aaa;
+    font-family:"Sarabun","TH Sarabun New",Tahoma,sans-serif!important;
+  }
+  #prePrintSurface .pre-print-notes,
+  #prePrintSurface .pre-print-notes *{
+    font-size:11pt!important;line-height:1.28!important;font-weight:400!important;
+  }
+  #prePrintSurface .pre-print-notes strong{font-weight:700!important}
+  #prePrintSurface .pre-print-notes p{margin:1.5mm 0!important}
+  #prePrintSurface .pre-print-notes .pre-bridging-print{
+    padding:0!important;margin:1.5mm 0!important;border:0!important;
+  }
+  #prePrintSurface .pre-print-notes ul{margin:1mm 0!important;padding-left:5mm!important}
+  #prePrintSurface .pre-print-notes li{margin:0!important;font-size:11pt!important}
+}
+@media print {
+  #prePrintExport .pre-print-notes{
+    margin-top:3mm!important;
+    padding:2mm 0 0!important;
+    border-top:1px solid #999!important;
+    break-inside:avoid!important;
+  }
+  #prePrintExport .pre-print-notes,
+  #prePrintExport .pre-print-notes *{
+    font-size:11pt!important;line-height:1.28!important;
+    font-weight:400!important;
+  }
+  #prePrintExport .pre-print-notes strong{font-weight:700!important}
+  #prePrintExport .pre-print-notes p{margin:1.5mm 0!important}
+  #prePrintExport .pre-print-notes .pre-bridging-print{
+    padding:0!important;margin:1.5mm 0!important;
+    border:0!important;
+  }
+  #prePrintExport .pre-print-notes ul{margin:1mm 0!important;padding-left:5mm!important}
+  #prePrintExport .pre-print-notes li{
+    margin:0!important;padding-left:0!important;font-size:11pt!important;
+  }
+  #prePrintExport .pre-print-grid td{vertical-align:top!important}
+}
