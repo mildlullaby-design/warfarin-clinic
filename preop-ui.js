@@ -39,7 +39,22 @@
   const val=id=>str($(id)?.value).trim(), checked=id=>!!$(id)?.checked;
   const num=id=>val(id)===''?NaN:Number(val(id));
   const dateAt=(date,offset)=>date?core.thaiDate(core.shiftDate(date,offset)):'—';
-  let revision=0,confirmed=-1,activePlan=null,rows=[],mappedProcedure=false,rendering=false;
+  let revision=0,activePlan=null,rows=[],mappedProcedure=false,rendering=false;
+  // A dedicated top-level print host prevents hidden screens / app layout
+  // from creating blank PDF pages in Chrome's print pagination.
+  const printHost=document.createElement('section');
+  printHost.id='prePrintExport';
+  printHost.className='pre-print-sheet';
+  printHost.setAttribute('aria-label','Final anticoagulant plan for printing');
+  document.body.append(printHost);
+  window.addEventListener('afterprint',()=>{printHost.innerHTML='';});
+  function printPlan(p,v,draft){
+    const html=printHtml(p,v,draft);
+    printHost.innerHTML=html;
+    $('prePrintSurface').innerHTML=html;
+    $('prePrintSurface').classList.toggle('pre-draft',draft);
+    window.print();
+  }
 
   // Keep the existing module, but group inputs and the plan into two screens.
   const inputScreen=document.createElement('section');inputScreen.id='preInputScreen';inputScreen.className='pre-screen';
@@ -635,7 +650,7 @@
     $('preOPDNote').value=noteText(p,v,blockers);
     refreshRendered();
     $('prePrintSurface').classList.add('pre-draft');
-    $('preConfirm').checked=false;$('prePrint').disabled=true;confirmed=-1;
+    $('prePrint').disabled=blockers.length>0;
   }
   function refreshRendered(){
     if(!activePlan)return;
@@ -645,7 +660,7 @@
     $('prePrintSurface').innerHTML=printHtml(p,v,true);
     $('prePrintSurface').classList.add('pre-draft');
   }
-  function changed(){revision++;confirmed=-1;activePlan=null;switchFields();$('preConfirm').checked=false;$('prePrint').disabled=true;}
+  function changed(){revision++;activePlan=null;switchFields();$('prePrint').disabled=true;}
   inputScreen.addEventListener('input',e=>{if(e.target.id!=='preProcedure')changed();});
   inputScreen.addEventListener('change',e=>{if(e.target.id!=='preProcedure')changed();});
   $('preCrCalc').onclick=()=>{const c=core.crclCG(val('preAge'),val('preSex'),val('preWeight'),val('preCr'));
@@ -675,28 +690,19 @@
   $('preGrid').addEventListener('input',e=>{
     const t=e.target,idx=Number(t.dataset.row),col=t.dataset.col;
     if(!Number.isInteger(idx)||!rows[idx]||!['drug','manage'].includes(col))return;
-    rows[idx][col]=t.value;revision++;confirmed=-1;$('preConfirm').checked=false;$('prePrint').disabled=true;
+    rows[idx][col]=t.value;revision++;
     refreshRendered();
   });
-  $('preConfirm').onchange=()=>{
-    if(!checked('preConfirm')){confirmed=-1;$('prePrint').disabled=true;refreshRendered();return;}
-    if(!activePlan||activePlan.blockers.length){
-      $('preConfirm').checked=false;alert('ยังมีรายการที่ต้องทบทวน ไม่สามารถ Final Print ได้');return;
-    }
-    confirmed=revision;$('prePrint').disabled=false;
-    $('prePrintSurface').innerHTML=printHtml(activePlan.p,activePlan.v,false);
-    $('prePrintSurface').classList.remove('pre-draft');
-    $('preStatus').textContent='Physician confirmed - Final A4 ready';
-  };
   $('preDraftPrint').onclick=()=>{
-    if(!activePlan)return;const {p,v}=activePlan;
-    $('prePrintSurface').innerHTML=printHtml(p,v,true);
-    $('prePrintSurface').classList.add('pre-draft');window.print();
+    if(!activePlan)return;
+    printPlan(activePlan.p,activePlan.v,true);
   };
+  // Clicking this button is the clinician's explicit final confirmation.
+  // Incomplete/unsafe plans still cannot use Final Print.
   $('prePrint').onclick=()=>{
-    if(!activePlan||activePlan.blockers.length||confirmed!==revision||!checked('preConfirm'))return;
-    $('prePrintSurface').innerHTML=printHtml(activePlan.p,activePlan.v,false);
-    $('prePrintSurface').classList.remove('pre-draft');window.print();
+    if(!activePlan || activePlan.blockers.length)return;
+    $('preStatus').textContent='Final A4 - physician reviewed';
+    printPlan(activePlan.p,activePlan.v,false);
   };
   $('preCopyNote').onclick=async()=>{
     const text=$('preOPDNote').value;
@@ -712,9 +718,9 @@
       else e.value='';
     });
     $('preLmwhMgKg').value='1';lmwhDoseEdited=false;refreshLmwhDose();$('preDailyTotal').textContent='';mappedProcedure=false;$('preBleed').disabled=false;$('preOtherVerified').checked=false;$('preOtherReviewWrap').classList.add('hidden');
-    rows=[];activePlan=null;confirmed=-1;revision++;
+    rows=[];activePlan=null;revision++;
     highlightReviewFields({},[]);
-    $('prePrintSurface').innerHTML='';$('preOPDNote').value='';$('preCopyStatus').textContent='';
+    $('prePrintSurface').innerHTML='';printHost.innerHTML='';$('preOPDNote').value='';$('preCopyStatus').textContent='';$('prePrint').disabled=true;
     resultScreen.classList.add('hidden');inputScreen.classList.remove('hidden');switchFields();
     root.scrollIntoView({behavior:'smooth',block:'start'});
   };
