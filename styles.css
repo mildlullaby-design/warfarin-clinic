@@ -1185,3 +1185,26 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
   }
   #prePrintSurface .pre-reference-line{font-size:9pt!important}
 }
+
+
+/* Compact 13pt table with 14pt body keeps the 15-day medication schedule,
+   INR note and clinician signature together on one A4 in print-layout QA. */
+@media print{
+  #prePrintExport .pre-print-grid,
+  #prePrintExport .pre-print-grid th,
+  #prePrintExport .pre-print-grid td{
+    font-size:13pt!important;line-height:1.08!important;
+  }
+  #prePrintExport .pre-print-grid th,
+  #prePrintExport .pre-print-grid td{padding:1pt 2pt!important}
+  #prePrintExport .pre-print-note{margin:1.5mm 0!important}
+  #prePrintExport .pre-print-footer{margin-top:3mm!important}
+  #prePrintExport .pre-signature-line,
+  #prePrintExport .pre-signature-name,
+  #prePrintExport .pre-signature-date{
+    margin:0!important;line-height:1.15!important;
+  }
+  #prePrintExport .pre-reference-line{
+    margin-top:2mm!important;font-size:8pt!important;
+  }
+}
