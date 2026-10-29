@@ -383,6 +383,7 @@
       'CrCl: '+(p.crCl||'-')+' mL/min',
       'แผนก่อนผ่าตัด: '+(v.action==='continue'?'continue ยาเดิม':v.action==='hold'?'หยุด '+LABEL[p.anticoagulant]+' ตั้งแต่ Day -'+v.holdDays:'รอ individualized plan')];
     if(p.anticoagulant==='warfarin'){
+      if(p.indication==='af')lines.push(afRecommendationText(p));
       lines.push('Warfarin: '+(p.weeklyDose||'-')+' mg/week; Target INR: '+(val('preTargetInr')||'-')+'; Bridging: '+(v.bridging?'conditional LMWH (แพทย์ยืนยันแล้ว)':'ไม่มีแผน bridging'));
       lines.push('หลังผ่าตัด: พิจารณา restart Warfarin ขนาดเดิม เมื่อ hemostasis adequate, no bleeding และแพทย์ผู้ดูแลยืนยัน');
       lines.push('เสนอ INR check 4 วันหลัง restart Warfarin จริง; ปรับวันนัดหาก restart ล่าช้า');
@@ -390,13 +391,17 @@
       lines.push('Apixaban: '+(p.apixDose||'-')+' mg BID; ไม่ให้ therapeutic bridging เป็น routine');
       lines.push('หลังผ่าตัด: พิจารณา restart Apixaban ตาม bleeding risk เมื่อ hemostasis adequate และแพทย์ผู้ดูแลยืนยัน');
     }
+    if(bridgeFootnote(p,v))lines.push(bridgeFootnote(p,v));
+    if(p.indication==='af'&&p.bridgeChoice==='yes'&&val('preAFBridgeRationale'))
+      lines.push('Individual AF bridging rationale: '+val('preAFBridgeRationale'));
     if(blockers.length)lines.push('รอทบทวน: '+blockers.join('; '));
     return lines.join('\n').replace(/[→↑↓≥≤]/g,' ');
   };
   function buildTable(){
     $('preGrid').classList.remove('hidden');
     $('preGrid').innerHTML='<h3>Medication Calendar: Day -7 to +7 (แก้ข้อความในตารางได้)</h3><div class="pre-table-wrap"><table class="pre-edit-grid"><thead><tr><th>Day</th><th>Date (B.E.)</th><th>Anticoagulant</th><th>Management / Suggestion</th></tr></thead><tbody>'+
-      rows.map((r,i)=>'<tr><td>'+r.day+'</td><td>'+esc(r.date)+'</td><td><textarea data-row="'+i+'" data-col="drug" rows="2">'+esc(r.drug)+'</textarea></td><td><textarea data-row="'+i+'" data-col="manage" rows="2">'+esc(r.manage)+'</textarea></td></tr>').join('')+'</tbody></table></div>';
+      rows.map((r,i)=>'<tr><td>'+r.day+'</td><td>'+esc(r.date)+'</td><td><textarea data-row="'+i+'" data-col="drug" rows="2">'+esc(r.drug)+'</textarea></td><td><textarea data-row="'+i+'" data-col="manage" rows="2">'+esc(r.manage)+'</textarea></td></tr>').join('')+'</tbody></table></div>'+
+      (activePlan&&bridgeFootnote(activePlan.p,activePlan.v)?'<p class="pre-lmwh-footnote">'+esc(bridgeFootnote(activePlan.p,activePlan.v))+'</p>':'');
   }
   const printHtml=(p,v,blocked)=>{
     const hdr='<h2 class="pre-print-heading">PERI-OPERATIVE ANTICOAGULANT MANAGEMENT</h2>'+
@@ -407,10 +412,12 @@
       '<br>Bleeding risk: '+esc(LABEL[p.bleedingRisk]||'-')+' · CrCl: '+esc(p.crCl||'-')+' mL/min'+
       (p.indication==='mechanical'?' · Valve: '+esc(selectedValues('preValveAt').join('+')||'Unknown'):'')+
       (p.anticoagulant==='warfarin'?' · Warfarin '+esc(p.weeklyDose)+' mg/wk · Target INR '+esc(val('preTargetInr')):' · Apixaban '+esc(p.apixDose)+' mg BID')+
+      '<br>'+esc(afRecommendationText(p))+
       '</div>';
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>Date</th><th>Drug</th><th>Management / Suggestion</th></tr></thead><tbody>'+
       rows.map(r=>'<tr><td>'+r.day+'</td><td>'+esc(r.date)+'</td><td>'+esc(r.drug)+'</td><td>'+esc(r.manage)+'</td></tr>').join('')+'</tbody></table>';
     const warn=(blocked?'<p class="pre-print-warning">DRAFT - NOT FOR MEDICATION ORDERS. Pending review.</p>':'')+
+      (bridgeFootnote(p,v)?'<p class="pre-print-note"><strong>Bridging note:</strong> '+esc(bridgeFootnote(p,v))+'</p>':'')+
       '<p class="pre-print-note">Post-op actions are CONDITIONAL: assess hemostasis/no bleeding and treating physician confirmation. Dates are suggested, not automatic orders.</p>';
     const footer='<footer class="pre-print-footer">Physician: '+esc(val('prePhysician')||'________________')+' &nbsp;&nbsp; Date: __________'+
       '<small>Clinical draft references: ISTH SSC 2026; ESC/EACTS 2025; ESC AF 2024; CHEST 2022; JAMA 2024; ASRA 2025. Validate locally.</small></footer>';
@@ -424,7 +431,9 @@
     $('preSafety').innerHTML=blockers.length?'<h3>ต้องตรวจสอบก่อน Final</h3><ul>'+blockers.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'';
     if(v.warnings.length)$('preSafety').innerHTML+='<h3>Safety reminders</h3><ul>'+v.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
     $('prePlan').innerHTML='<p><strong>Guideline suggestion:</strong> '+esc(v.action==='continue'?'Continue':v.action==='hold'?'Interrupt / hold '+v.holdDays+' days':'Physician review')+
-      '; Bridging: '+esc(v.bridging?'Conditional after explicit review':'Not routinely selected')+'</p>';
+      '; Bridging selected: '+esc(v.bridging?'Yes (physician-selected)':'No')+'</p>'+
+      (afRecommendationText(p)?'<p class="pre-guideline-advice">'+esc(afRecommendationText(p))+'</p>':'')+
+      (bridgeFootnote(p,v)?'<p class="pre-lmwh-footnote">'+esc(bridgeFootnote(p,v))+'</p>':'');
     $('preSources').textContent='References: ISTH SSC 2026; '+v.sources.join(' / ');
     $('preNotes').textContent=p.neuraxial!=='no'?v.neuraxialNote:'';
     buildTable();
