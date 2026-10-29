@@ -260,7 +260,7 @@ test('Apixaban minimal-risk calendar names the current dose before and after sur
 });
 test('Apixaban postoperative dates are merged on screen and in print with complete original sentences',()=>{
   const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
-  const a=ui.indexOf('  function isApixabanPostOp('),b=ui.indexOf('  const printHtml=',a);
+  const a=ui.indexOf('  function isMergedPostOp('),b=ui.indexOf('  const printHtml=',a);
   assert.equal(a>=0 && b>a,true);
   const renderer=new Function('esc',ui.slice(a,b)+'return {editableRow,printableRow};')(
     s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -274,4 +274,63 @@ test('Apixaban postoperative dates are merged on screen and in print with comple
   assert.match(printed,/if stable\/no bleeding\/hemostasis adequate and physician approves/);
   assert.doesNotMatch(printed,/Post-op: treating team to confirm/);
   assert.match(ui,/if restart confirmed/);
+});
+
+test('Warfarin post-op rows use one editable merged cell with the full clinical wording',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  const i=ui.indexOf('  function hasSafeLmwh('),j=ui.indexOf('  function plan(){',i);
+  const k=ui.indexOf('  function isMergedPostOp('),l=ui.indexOf('  const printHtml=',k);
+  assert.equal(i>=0&&j>i&&k>=0&&l>k,true);
+  const makeRows=new Function('core','LABEL','dateAt','dailyFor','val','targetInr',
+    ui.slice(i,j)+'return makeRows;')(
+      core,{warfarin:'Warfarin',apixaban:'Apixaban'},
+      (date,day)=>core.thaiDate(core.shiftDate(date,day)),()=>null,
+      id=>id==='preTargetInr'?'2-3':'',()=>'2-3'
+    );
+  const render=new Function('esc',ui.slice(k,l)+'return {editableRow,printableRow};')(s=>String(s));
+  const p={anticoagulant:'warfarin',indication:'af',procedure:'Total knee arthroplasty',
+    operationDate:'2026-11-30',bleedingRisk:'high',weeklyDose:'12',neuraxial:'no',
+    crCl:'65',weightKg:'50',bridgeChoice:'yes',bridgeConfirmed:true,lmwhMgPerDose:'50'};
+  const plan=core.plan(p),rows=makeRows(p,plan);
+  assert.equal(rows.length,15);
+  const dayMinus3=rows.find(r=>r.day===-3);
+  assert.equal(dayMinus3.manage,'Enoxaparin 0.50 mL SC (50 mg) q12h');
+  const restart=rows.find(r=>r.day===1);
+  assert.equal(restart.manage,'Suggest restart Warfarin 12 mg/week if stable, no bleeding, hemostasis adequate');
+  assert.doesNotMatch(restart.drug,/conditional restart/);
+  const dayPlus2=rows.find(r=>r.day===2);
+  assert.match(dayPlus2.drug,/Warfarin 12 mg\/week \(if restart confirmed\)/);
+  const edit=render.editableRow(restart,8,p),paper=render.printableRow(restart,p);
+  assert.match(edit,/colspan="2"/);
+  assert.match(paper,/colspan="2"/);
+  assert.match(edit,/data-col="manage"/);
+  assert.match(paper,/Suggest restart Warfarin 12 mg\/week if stable, no bleeding, hemostasis adequate/);
+  const inr=render.printableRow(rows.find(r=>r.day===5),p);
+  assert.match(inr,/Suggested INR check 4 วันหลัง restart Warfarin/);
+  assert.match(inr,/Stop LMWH only once INR therapeutic/);
+});
+test('A4 uses larger margins, Sarabun 16 pt, renal inputs, and right-aligned signed name/date',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  const css=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+  assert.match(ui,/ · Cr: /);
+  assert.match(ui,/ · BW: /);
+  assert.match(ui,/ · CrCl: /);
+  assert.equal(ui.indexOf("' · Cr: '")<ui.indexOf("' · BW: '"),true);
+  assert.equal(ui.indexOf("' · BW: '")<ui.indexOf("' · CrCl: '"),true);
+  assert.match(ui,/pre-signature-line/);
+  assert.match(ui,/pre-signature-name/);
+  assert.match(ui,/pre-signature-date/);
+  assert.match(css,/@page\{size:A4 portrait;margin:20mm\}/);
+  assert.match(css,/#prePrintSurface,\#prePrintSurface \*\{/);
+  assert.match(css,/font-size:16pt!important/);
+  assert.match(css,/pre-signature-block\{/);
+  assert.match(css,/margin-left:auto/);
+});
+test('Bridging note prints as separated paragraphs without duplicating title',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  assert.match(ui,/const bridgingParts=/);
+  assert.match(ui,/split\(\/\\\.\\s\+\(\?=Last therapeutic/);
+  assert.match(ui,/bridgingParts\.map/);
+  assert.match(ui,/pre-bridging-print/);
+  assert.doesNotMatch(ui,/\(planned bridging schedule\)/);
 });
