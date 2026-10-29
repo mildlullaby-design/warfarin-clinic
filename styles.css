@@ -861,3 +861,29 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
  .pre-print-grid {font-size:9px;}
  .pre-print-grid tr {break-inside:avoid;}
 }
+
+
+/* Pre-op v2: simple two-screen elective OPD workflow */
+.pre-screen.hidden{display:none!important}
+.preop-module .pre-checkrow{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+.preop-module .pre-checkrow label{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#fafbfd}
+.preop-module #preScoreChoices{display:grid;gap:5px;padding:8px}
+.preop-module .pre-reference-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.preop-module #preRiskPopup{border:1px solid var(--line-strong);border-radius:12px;max-width:min(95vw,850px);max-height:86vh;padding:18px;background:white;color:var(--ink)}
+.preop-module #preRiskPopup::backdrop{background:rgba(15,24,41,.55)}
+.pre-dialog-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.preop-module #preRiskFilter{width:100%;margin:8px 0}
+.pre-edit-grid{table-layout:fixed}
+.pre-edit-grid textarea{width:100%;min-width:140px;min-height:55px;font-size:.78rem;padding:5px;resize:vertical}
+.preop-module #preOPDNote{width:100%;min-height:185px;font:13px/1.55 Tahoma,sans-serif;padding:12px;background:#f8fafc}
+.pre-print-heading{text-align:center;margin:0 0 8px;font:bold 15px Arial,sans-serif}
+.pre-print-grid td:nth-child(1){width:9%}.pre-print-grid td:nth-child(2){width:17%}
+.pre-print-grid td:nth-child(3){width:23%}
+.pre-print-sheet .pre-print-grid{font-size:9px;line-height:1.25}
+.pre-print-sheet .pre-print-grid td{padding:4px}
+@media print{.pre-print-sheet .pre-print-grid{font-size:8.6px}.pre-print-sheet{font-family:Arial,Tahoma,sans-serif}}
+
+.preop-module .pre-daily-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin:12px 0}
+.preop-module .pre-daily-grid label{display:flex;flex-direction:column;gap:4px;text-align:center;font-size:.85rem}
+.preop-module .pre-daily-grid input{width:100%;min-width:0;padding:7px 3px;text-align:center}
+@media(max-width:620px){.preop-module .pre-daily-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
