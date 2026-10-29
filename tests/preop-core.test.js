@@ -191,3 +191,31 @@ test('Clinical review and bridge checkboxes include indication-specific primary 
   assert.match(ui,/ESC\/EACTS 2025/);
   assert.match(ui,/ASRA 2025/);
 });
+
+
+test('Neuraxial therapeutic LMWH bridge blocks only until separate ASRA review is confirmed',()=>{
+  const base={
+    anticoagulant:'warfarin',indication:'af',procedure:'Total knee arthroplasty',
+    bleedingRisk:'high',operationDate:'2026-11-30',crCl:'70',weightKg:'65',
+    weeklyDose:'21',bridgeChoice:'yes',bridgeConfirmed:true,lmwhMgPerDose:'65',
+    neuraxial:'yes',riskReviewed:true
+  };
+  const pending=core.plan({...base,neuraxialConfirmed:false});
+  const verified=core.plan({...base,neuraxialConfirmed:true});
+  assert.match(pending.blockers.join(' '),/ASRA LMWH/);
+  assert.doesNotMatch(verified.blockers.join(' '),/ASRA LMWH/);
+});
+test('Neuraxial selection Yes requires signoff; No has no ASRA-specific review field',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  assert.match(ui,/p.neuraxial==='unknown'/);
+  assert.match(ui,/p.neuraxial==='yes'&&!checked\('preAsraConfirmed'\)/);
+  assert.match(ui,/preAsraConfirmed/);
+  assert.match(ui,/Clinical reminders \(ไม่ใช่ช่องที่กรอกค้าง\)/);
+});
+test('Warfarin calendar gives short restart-relative INR follow-up with no old conditional string',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  assert.match(ui,/Suggested INR check 4 วันหลัง restart Warfarin, Target INR/);
+  assert.match(ui,/Stop LMWH only once INR therapeutic/);
+  assert.doesNotMatch(ui,/Suggested INR check \(4 วันหลัง planned restart Day \+1\)/);
+  assert.doesNotMatch(ui,/ทีมวิสัญญียืนยันก่อน needle placement \(INR/);
+});
