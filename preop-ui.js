@@ -519,7 +519,8 @@
     activePlan={p,v,blockers};rows=makeRows(p,v);
     $('preStatus').textContent=blockers.length?'DRAFT - รอ Physician Review':'พร้อมให้แพทย์ยืนยัน Final';
     $('preStatus').className='pre-status'+(blockers.length?' blocked':'');
-    const required=highlightReviewFields(p,blockers);
+    highlightReviewFields(p,blockers);
+    $('preSafety').classList.toggle('pre-blocking',blockers.length>0);
     $('preSafety').innerHTML=blockers.length
       ?'<h3>! ต้องแก้ไขก่อน Final ('+blockers.length+' รายการ)</h3><p class="pre-safety-guide">ช่องที่ต้องกรอก/ทบทวนมีกรอบสีแดงในหน้า Assessment กด "ไปกรอก" เพื่อแก้ไขได้ทันที</p><ul>'+
         blockers.map(x=>'<li><span>'+esc(x)+'</span>'+
