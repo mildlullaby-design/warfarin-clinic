@@ -562,7 +562,9 @@
         ?'Neuraxial/deep plexus planned: Anesthesiologist to verify INR, exact anticoagulant last dose and catheter timing per ASRA before block. Clinic medication plan is NOT neuraxial clearance.'
         :'Anesthesia technique not established: if neuraxial/deep plexus is selected, anesthesiologist must review ASRA interruption, INR and catheter plan before block.')+'</p>'
       :'';
+    const anesthesiaAlerts=v.warnings.filter(x=>x.startsWith('ANESTHESIA ALERT:'));
     const warn=(blocked?'<p class="pre-print-warning">DRAFT - NOT FOR MEDICATION ORDERS. Pending review.</p>':'')+
+      anesthesiaAlerts.map(x=>'<p class="pre-print-warning">'+esc(x)+'</p>').join('')+
       (inrTarget?'<p class="pre-print-note"><strong>Pre-op INR goal:</strong> '+esc(inrTarget.label)+'. '+esc(inrTarget.advice)+'</p>':'')+
       (bridgeFootnote(p,v)?'<p class="pre-print-note"><strong>Bridging note:</strong> '+esc(bridgeFootnote(p,v))+'</p>':'')+
       anestheticHandoff+
