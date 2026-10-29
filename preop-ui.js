@@ -515,9 +515,10 @@
         });
         if(requirement){
           const advice=requirement.kind==='neuraxial'
-            ?'ตรวจ INR ก่อน neuraxial: ต้องอยู่ใน normal range ตาม local laboratory'
-            :'Check pre-op INR; TARGET INR <1.5 for elective major surgery. If INR >=1.5, consult surgeon/anesthetist before proceeding (confirm local procedural target)';
-          manage+=(manage?' | ':'')+advice;
+            ?'Check pre-op INR; keep within local laboratory normal range before neuraxial'
+            :'Check pre-op INR; keep <1.5 for elective major surgery';
+          // Put separate Day -1 instructions on their own lines, including in A4.
+          manage+=(manage?'\n':'')+advice;
         }
       }
       result.push({day,date:dateAt(p.operationDate,day),drug,manage});
@@ -577,7 +578,7 @@
     if(isMergedPostOp(p,r)){
       return '<tr>'+day+'<td colspan="2" class="pre-merged-postop">'+esc(r.manage||r.drug)+'</td></tr>';
     }
-    return '<tr>'+day+'<td>'+esc(r.drug)+'</td><td>'+esc(r.manage)+'</td></tr>';
+    return '<tr>'+day+'<td>'+esc(r.drug)+'</td><td>'+esc(r.manage).replace(/\n/g,'<br>')+'</td></tr>';
   }
   function buildTable(){
     $('preGrid').classList.remove('hidden');
@@ -604,16 +605,21 @@
     const anesthesiaAlerts=v.warnings.filter(x=>x.startsWith('ANESTHESIA ALERT:'));
     const bridgingText=bridgeFootnote(p,v);
     const bridgingPrint=bridgingText
-      ?'<section class="pre-bridging-print"><strong>Bridging note:</strong>'+
-        '<ul><li>'+esc(bridgingText.replace(/^Bridging note:\s*/i,''))+'</li></ul></section>'
+      ?'<div class="pre-bridging-print"><strong>Bridging note:</strong>'+
+        '<ul><li>'+esc(bridgingText.replace(/^Bridging note:\s*/i,''))+'</li></ul></div>'
+      :'';
+    const inrPrint=inrTarget
+      ?'<p class="pre-print-note"><strong>INR ก่อนผ่าตัด:</strong> '+esc(inrTarget.kind==='neuraxial'
+        ?'อยู่ในช่วงปกติของห้องปฏิบัติการ'
+        :'<1.5 (หากไม่ถึงเกณฑ์ ให้ปรึกษาทีมผ่าตัดก่อนดำเนินการ)')+'</p>'
       :'';
     const warn=(blocked?'<p class="pre-print-warning">DRAFT - NOT FOR MEDICATION ORDERS. Pending review.</p>':'')+
       anesthesiaAlerts.map(x=>'<p class="pre-print-warning">'+esc(x)+'</p>').join('')+
-      (inrTarget?'<p class="pre-print-note"><strong>INR ก่อนผ่าตัด:</strong> '+esc(inrTarget.kind==='neuraxial'
-        ?'อยู่ในช่วงปกติของห้องปฏิบัติการ'
-        :'<1.5 (หากไม่ถึงเกณฑ์ ให้ปรึกษาทีมผ่าตัดก่อนดำเนินการ)')+'</p>':'')+
-      bridgingPrint+
-      '<p class="pre-print-note">Post-op actions are CONDITIONAL: assess hemostasis/no bleeding and treating physician confirmation. Dates are suggested, not automatic orders.</p>';
+      '<section class="pre-print-notes">'+
+        inrPrint+
+        bridgingPrint+
+        '<p class="pre-print-note"><strong>Post-op actions:</strong> Conditional on adequate hemostasis, no active bleeding and treating physician confirmation. Suggested dates are not automatic orders.</p>'+
+      '</section>';
     const footer='<footer class="pre-print-footer">'+
       '<div class="pre-signature-block">'+
       '<div class="pre-signature-line">ลงชื่อ ............................................................</div>'+
