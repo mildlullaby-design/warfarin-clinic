@@ -118,3 +118,41 @@ test('no INR threshold when warfarin is continued or for apixaban',()=>{
  assert.equal(core.preopInrRequirement({anticoagulant:'warfarin',action:'continue'}),null);
  assert.equal(core.preopInrRequirement({anticoagulant:'apixaban',action:'hold'}),null);
 });
+
+
+test('operation time is optional and missing high-dose apixaban neuraxial time stays a review warning',()=>{
+ const p=core.plan({...basis,anticoagulant:'apixaban',indication:'af',bleedingRisk:'high',
+   apixDose:'5',crCl:'75',neuraxial:'yes',operationTime:'',lastDoseDateTime:''});
+ assert.doesNotMatch(p.blockers.join(' '),/operation time and exact last-dose datetime required/);
+ assert.match(p.warnings.join(' '),/exact time not entered/);
+});
+test('missing input feedback has visible red flags and fix-navigation',()=>{
+ const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+ const css=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+ assert.match(ui,/highlightReviewFields/);
+ assert.match(ui,/data-fix-input/);
+ assert.match(ui,/aria-invalid/);
+ assert.match(css,/pre-needs-attention/);
+ assert.match(css,/pre-input-error-hint/);
+});
+test('print uses Sarabun and A4 margins',()=>{
+ const css=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ assert.match(css,/font-family:"Sarabun"/);
+ assert.match(css,/@page\{size:A4 portrait;margin:15mm 14mm\}/);
+ assert.match(html,/family=Sarabun/);
+});
+test('the AF CHEST bridge suggestion stays on screen, not printed',()=>{
+ const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+ const start=ui.indexOf('const printHtml=');
+ const end=ui.indexOf('function renderPlan()',start);
+ assert.equal(start>=0,true);
+ assert.equal(end>start,true);
+ assert.doesNotMatch(ui.slice(start,end),/afRecommendationText/);
+});
+test('daily Warfarin is never inferred from a weekly total',()=>{
+ const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+ assert.match(ui,/mg\/week \(ตามตารางยาเดิม\)/);
+ assert.match(ui,/dailyFor\(day,p\.operationDate\)/);
+ assert.doesNotMatch(ui,/Usual .*regimen/);
+});
