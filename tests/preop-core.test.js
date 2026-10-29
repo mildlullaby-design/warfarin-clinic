@@ -152,7 +152,42 @@ test('the AF CHEST bridge suggestion stays on screen, not printed',()=>{
 });
 test('daily Warfarin is never inferred from a weekly total',()=>{
  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
- assert.match(ui,/mg\/week \(ตามตารางยาเดิม\)/);
+ assert.doesNotMatch(ui,/mg\/week \(ตามตารางยาเดิม\)/);
  assert.match(ui,/dailyFor\(day,p\.operationDate\)/);
  assert.doesNotMatch(ui,/Usual .*regimen/);
+});
+
+
+test('Target INR selection supports presets and editable custom range',()=>{
+  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  assert.match(html,/option value="2-3"/);
+  assert.match(html,/option value="2.5-3.5"/);
+  assert.match(html,/id="preTargetInrCustom"/);
+  assert.match(ui,/function validTargetInr/);
+  assert.match(ui,/targetInr\(\)/);
+});
+test('Calendar removes usual-dose parentheses and has short Day+5 INR text',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  assert.doesNotMatch(ui,/Hold Warfarin \(current/);
+  assert.doesNotMatch(ui,/mg\/week \(ตามตารางยาเดิม\)/);
+  assert.match(ui,/Suggested INR check 4 วันหลัง restart Warfarin, Target INR/);
+  assert.match(ui,/Stop LMWH only once INR therapeutic/);
+  assert.doesNotMatch(ui,/ทีมวิสัญญียืนยันก่อน needle placement \(INR/);
+});
+test('Neuraxial Yes uses explicit ASRA review, Unknown remains unresolved',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  const coreText=fs.readFileSync(path.join(root,'preop-core.js'),'utf8');
+  assert.match(ui,/preAsraConfirmed/);
+  assert.match(ui,/p.neuraxial==='unknown'/);
+  assert.match(ui,/p.neuraxial==='yes'&&!checked\('preAsraConfirmed'\)/);
+  assert.match(coreText,/p.neuraxialConfirmed!==true/);
+});
+test('Clinical review and bridge checkboxes include indication-specific primary guidelines',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  assert.match(ui,/preRiskGuideline/);
+  assert.match(ui,/preBridgingGuidance/);
+  assert.match(ui,/CHEST 2022/);
+  assert.match(ui,/ESC\/EACTS 2025/);
+  assert.match(ui,/ASRA 2025/);
 });
