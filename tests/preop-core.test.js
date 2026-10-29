@@ -181,7 +181,7 @@ test('Clinic can finalize medication review without anesthesia ASRA checkbox',()
   assert.doesNotMatch(ui,/preAsraConfirmed/);
   assert.doesNotMatch(coreText,/neuraxialConfirmed/);
   assert.match(ui,/ส่งต่อวิสัญญี/);
-  assert.match(ui,/anestheticHandoff/);
+  assert.doesNotMatch(ui,/const anestheticHandoff=/);
 });
 test('Clinical review and bridge checkboxes include indication-specific primary guidelines',()=>{
   const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
@@ -326,11 +326,32 @@ test('A4 uses larger margins, Sarabun 16 pt, renal inputs, and right-aligned sig
   assert.match(css,/pre-signature-block\{/);
   assert.match(css,/margin-left:auto/);
 });
-test('Bridging note prints as separated paragraphs without duplicating title',()=>{
+test('A4 Bridging note shows one Start Enoxaparin bullet without duplicate title or anesthesia note',()=>{
   const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
-  assert.match(ui,/const bridgingParts=/);
-  assert.match(ui,/split\(\/\\\.\\s\+\(\?=Last therapeutic/);
-  assert.match(ui,/bridgingParts\.map/);
-  assert.match(ui,/pre-bridging-print/);
+  const start=ui.indexOf('  const printHtml=');
+  const end=ui.indexOf('  function renderPlan()',start);
+  const print=ui.slice(start,end);
+  assert.match(ui,/return 'Bridging note: Start Enoxaparin/);
+  assert.match(print,/pre-bridging-print/);
+  assert.match(print,/<ul><li>/);
+  assert.match(print,/replace\(\/\^Bridging note:\\s\*\/i/);
+  assert.doesNotMatch(print,/anestheticHandoff/);
+  assert.doesNotMatch(print,/ANESTHESIA HANDOFF:/);
+  assert.doesNotMatch(ui,/Last therapeutic dose อย่างน้อย 24 ชั่วโมง/);
   assert.doesNotMatch(ui,/\(planned bridging schedule\)/);
+});
+
+test('A4 INR label is short and separate from the normal-range neuraxial target',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  const start=ui.indexOf('  const printHtml=');
+  const end=ui.indexOf('  function renderPlan()',start);
+  const print=ui.slice(start,end);
+  assert.match(print,/INR ก่อนผ่าตัด:/);
+  assert.doesNotMatch(print,/Pre-op INR goal:/);
+  assert.match(print,/อยู่ในช่วงปกติของห้องปฏิบัติการ/);
+  assert.match(print,/หากไม่ถึงเกณฑ์ ให้ปรึกษาทีมผ่าตัด/);
+  const ordinary=core.preopInrRequirement({anticoagulant:'warfarin',action:'hold',neuraxial:'no'});
+  const neuro=core.preopInrRequirement({anticoagulant:'warfarin',action:'hold',neuraxial:'yes'});
+  assert.equal(ordinary.kind,'surgery');
+  assert.equal(neuro.kind,'neuraxial');
 });
