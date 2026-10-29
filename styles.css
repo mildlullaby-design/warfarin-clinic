@@ -1054,3 +1054,18 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
   #prePrintSurface .pre-print-grid tr{break-inside:avoid;page-break-inside:avoid}
   #prePrintSurface .pre-print-grid thead{display:table-header-group}
 }
+
+
+/* Single clean Bridging note bullet on A4, with breathing space. */
+.pre-print-sheet .pre-bridging-print ul,
+#prePrintSurface .pre-bridging-print ul {
+  margin:3mm 0 0;
+  padding-left:7mm;
+}
+.pre-print-sheet .pre-bridging-print li,
+#prePrintSurface .pre-bridging-print li {
+  padding-left:2mm;
+  margin:0;
+  line-height:1.5!important;
+  font-size:16pt!important;
+}
