@@ -91,7 +91,7 @@ test('LMWH dose rejects invalid manual override, rather than silently reverting'
 });
 test('table code includes day minus one INR check and avoids repetitive INR injection condition',()=>{
   const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
-  assert.match(ui,/day===-1&&p\.bleedingRisk==='high'/);
+  assert.match(ui,/if\(day===-1\)/);
   assert.match(ui,/LAST therapeutic dose Day -1 AM ONLY/);
   assert.match(ui,/bridgeFootnote/);
   assert.doesNotMatch(ui,/ONLY if INR subtherapeutic and start confirmed/);
