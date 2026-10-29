@@ -235,6 +235,18 @@
 
 
   const selectedValues=name=>[...root.querySelectorAll('input[name="'+name+'"]:checked')].map(x=>x.value);
+  function targetInr(){
+    return targetInr()==='other'?val('preTargetInrCustom').replace(/\s+/g,''):val('preTargetInr');
+  }
+  function validTargetInr(){
+    const t=targetInr(),m=t.match(/^(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/);
+    return !!m&&Number(m[1])>0&&Number(m[2])>Number(m[1])&&Number(m[2])<=5;
+  }
+  // Other INR target must be a clinically reviewed numeric range, not arbitrary text.
+  const targetWrap=$('preTargetInrCustomWrap');
+  $('preTargetInr').addEventListener('change',()=>{
+    targetWrap.classList.toggle('hidden',val('preTargetInr')!=='other');
+  });
   function input(){
     const age=val('preAge'),sex=val('preSex'),wt=val('preWeight'),scr=val('preCr');
     const calc=core.crclCG(age,sex,wt,scr);
@@ -275,7 +287,8 @@
         if(!val(id))b.push('กรอก '+title);
       if(['lt1','lt3'].includes(val('preVTETime')))b.push('Recent VTE: elective surgery timing and interruption need individualized physician review.');
     }
-    if(p.anticoagulant==='warfarin' && (!Number.isFinite(num('preWeekly'))||num('preWeekly')<=0||!val('preTargetInr')))b.push('Warfarin: ระบุ Weekly dose และ Target INR');
+    if(p.anticoagulant==='warfarin'&&(!Number.isFinite(num('preWeekly'))||num('preWeekly')<=0))b.push('Warfarin: ระบุ Weekly dose');
+    if(p.anticoagulant==='warfarin'&&!validTargetInr())b.push('Target INR: เลือก 2-3, 2.5-3.5 หรือกรอกช่วงตัวเลขที่ถูกต้อง');
     if(p.anticoagulant==='warfarin'&&dailyValues()==='incomplete')b.push('Warfarin regimen รายวัน: ต้องกรอกครบทั้ง 7 วัน หรือเว้นว่างทั้งหมด');
     if(p.anticoagulant==='apixaban'&&val('preApixDose')==='other')b.push('Other Apixaban regimen: ต้องตรวจแผนและขนาดยากับแพทย์ก่อนใช้เป็น Final');
     if(p.anticoagulant==='warfarin'&&p.bridgeChoice==='yes'&&p.indication==='af'&&!val('preAFBridgeRationale')){
@@ -288,7 +301,7 @@
   const REVIEW_FIELDS=['preDrug','preIndication','preProcedure','preBleed','preOtherVerified','preDate',
     'preRiskV2Confirm','preScore','preAFStroke','preAFClot','preValveAt','preVTETime',
     'preVTEType','preVTERecur','preVTEThromb','preVTECancer','preVTEClot',
-    'preWeekly','preTargetInr','preApixDose','preCrCl','preWeight','preBridgeConfirmed',
+    'preWeekly','preTargetInr','preTargetInrCustom','preApixDose','preCrCl','preWeight','preBridgeConfirmed',
     'preLmwhDose','preAFBridgeRationale','preNeuraxial','preRenalHold'];
   function reviewControl(id){
     return $(id) || (id==='preValveAt'?root.querySelector('input[name="preValveAt"]'):null);
@@ -310,6 +323,7 @@
     if(m.includes('thrombophilia'))return 'preVTEThromb';
     if(m.includes('cancer history'))return 'preVTECancer';
     if(m.includes('previous perioperative vte'))return 'preVTEClot';
+    if(m.includes('target inr'))return val('preTargetInr')==='other'?'preTargetInrCustom':'preTargetInr';
     if(m.includes('weekly dose')||m.includes('warfarin regimen'))return 'preWeekly';
     if(m.includes('apixaban dose')||m.includes('apixaban regimen'))return 'preApixDose';
     if(m.includes('crcl')||m.includes('renal impairment'))return 'preCrCl';
@@ -335,7 +349,7 @@
     }
     if(p.anticoagulant==='warfarin'){
       if(!Number.isFinite(num('preWeekly'))||num('preWeekly')<=0)required.add('preWeekly');
-      if(!val('preTargetInr'))required.add('preTargetInr');
+      if(!validTargetInr())required.add(val('preTargetInr')==='other'?'preTargetInrCustom':'preTargetInr');
     }
     if(p.anticoagulant==='warfarin'&&p.bridgeChoice==='yes'&&!val('preLmwhDose'))required.add('preLmwhDose');
     for(const id of required){
@@ -354,6 +368,7 @@
   function switchFields(){
     const drug=val('preDrug'),ind=val('preIndication'),bridge=val('preBridge')==='yes';
     $('preWarfarinFields').classList.toggle('hidden',drug!=='warfarin');
+    targetWrap.classList.toggle('hidden',val('preTargetInr')!=='other');
     $('preApixFields').classList.toggle('hidden',drug!=='apixaban');
     $('preBridgeFields').classList.toggle('hidden',drug!=='warfarin'||!bridge);
     $('preAFBridgeOverride').classList.toggle('hidden',!(drug==='warfarin'&&ind==='af'&&bridge));
@@ -396,8 +411,8 @@
       if(day<0){
         if(p.anticoagulant==='warfarin'){
           const dose=dailyFor(day,p.operationDate);
-          const current=Number.isFinite(dose)?(dose===0?'0 mg (scheduled day off)':dose+' mg'):((p.weeklyDose||'-')+' mg/week (ตามตารางยาเดิม)');
-          drug=holding?'Hold Warfarin (current '+current+')':('Warfarin '+current);
+          const current=Number.isFinite(dose)?(dose===0?'0 mg':dose+' mg'):((p.weeklyDose||'-')+' mg/week');
+          drug=holding?'Hold Warfarin':'Warfarin '+current;
         } else {
           drug=v.action==='continue'?'Continue Apixaban':(holding?'Hold Apixaban':'Apixaban '+(p.apixDose||'-')+' mg BID');
         }
@@ -410,14 +425,14 @@
         drug=p.anticoagulant==='warfarin'
           ?'Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
             ?dailyFor(day,p.operationDate)+' mg/day'
-            :(p.weeklyDose||'-')+' mg/week (ตามตารางยาเดิม)')+' - conditional restart'
+            :(p.weeklyDose||'-')+' mg/week')+' - conditional restart'
           :'Post-op: treating team to confirm';
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===1)
           manage='Suggest restart Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
             ?dailyFor(day,p.operationDate)+' mg'
-            :(p.weeklyDose||'-')+' mg/week ตามตารางยาเดิม')+' if stable, no bleeding, hemostasis adequate';
+            :(p.weeklyDose||'-')+' mg/week')+' if stable, no bleeding, hemostasis adequate';
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===5)
-          manage='Suggested INR check (4 วันหลัง planned restart Day +1); ถ้า restart จริงช้ากว่านี้ให้เลื่อน INR check. Target INR '+val('preTargetInr');
+          manage='Suggested INR check 4 วันหลัง restart Warfarin, Target INR '+targetInr();
         if(p.anticoagulant==='apixaban'&&v.action==='hold'&&((p.bleedingRisk==='high'&&day===2)||(p.bleedingRisk!=='high'&&day===1)))
           manage='Suggest restart Apixaban '+val('preApixDose')+' mg BID if stable/no bleeding/hemostasis adequate and physician approves';
         if(p.anticoagulant==='apixaban'&&v.action==='hold'&&p.bleedingRisk==='high'&&day===3)
@@ -439,8 +454,8 @@
           if(day===(p.bleedingRisk==='high'?2:1))
             manage+=(manage?' | ':'')+'LMWH restart only if indicated, >=24 h (low/mod) or 48-72 h (high), hemostasis adequate and treating team confirms';
         }
-        if(day===5&&p.anticoagulant==='warfarin')
-          manage+='; If LMWH was restarted, stop only once INR therapeutic and physician approves';
+        if(day===5&&p.anticoagulant==='warfarin'&&eligibleLmwh)
+          manage+='; Stop LMWH only once INR therapeutic';
       }
       if(day===-1){
         const requirement=core.preopInrRequirement({
@@ -448,7 +463,7 @@
         });
         if(requirement){
           const advice=requirement.kind==='neuraxial'
-            ?'ตรวจ INR ก่อน neuraxial: ต้องอยู่ใน normal range ตาม local laboratory; ทีมวิสัญญียืนยันก่อน needle placement (INR <1.5 เพียงอย่างเดียวไม่เพียงพอ)'
+            ?'ตรวจ INR ก่อน neuraxial: ต้องอยู่ใน normal range ตาม local laboratory'
             :'Check pre-op INR; TARGET INR <1.5 for elective major surgery. If INR >=1.5, consult surgeon/anesthetist before proceeding (confirm local procedural target)';
           manage+=(manage?' | ':'')+advice;
         }
