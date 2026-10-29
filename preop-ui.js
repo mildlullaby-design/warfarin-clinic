@@ -307,7 +307,7 @@
   function bridgeFootnote(p,v){
     if(p.anticoagulant!=='warfarin'||p.bridgeChoice!=='yes') return '';
     if(!hasSafeLmwh(p,v))return 'LMWH bridging ยังไม่พร้อมออกคำสั่ง: ต้องทบทวน renal function, dose และ physician confirmation ก่อน';
-    return 'Bridging note: เริ่ม therapeutic Enoxaparin หลัง INR ต่ำกว่า therapeutic range ตามผลตรวจที่แพทย์ประเมินก่อนเริ่ม (ไม่สั่งตรวจ INR ทุกวันโดยอัตโนมัติ). Last dose ประมาณ 24 ชั่วโมงก่อนหัตถการ; Day -1 AM เท่านั้น, งด PM. ยืนยันเวลาฉีดครั้งสุดท้ายกับเวลาเริ่มผ่าตัดจริง. ถ้า Neuraxial ต้องใช้ ASRA timing เพิ่มเติม';
+    return 'Bridging note: เริ่ม therapeutic Enoxaparin หลัง INR ต่ำกว่า therapeutic range ตามผลตรวจที่แพทย์ประเมินก่อนเริ่ม (ไม่สั่งตรวจ INR ทุกวันโดยอัตโนมัติ). Last therapeutic dose อย่างน้อย 24 ชั่วโมงก่อนหัตถการ; Day -1 AM เท่านั้น, งด PM. ยืนยันเวลาฉีดจริงเทียบกับเวลาเริ่มผ่าตัด (12 ชั่วโมงใช้สำหรับ prophylactic dose ไม่ใช่ therapeutic bridging). ถ้า Neuraxial ต้องใช้ ASRA timing เพิ่มเติม';
   }
   function afRecommendationText(p){
     if(p.indication!=='af'||p.anticoagulant!=='warfarin')return '';
@@ -354,7 +354,7 @@
         }
         if(day===-1){
           manage=eligibleLmwh
-            ?doseText+' LAST DOSE Day -1 AM ONLY; STOP thereafter, OMIT PM dose. Ensure >=24 h before procedure'
+            ?doseText+' LAST therapeutic dose Day -1 AM ONLY (at least 24 h before procedure); OMIT PM dose. Verify injection/procedure times'
             :'Bridging requires physician plan: do not administer LMWH pending review';
         }
         if(day>0&&(day===1||day===2||day===3)){
@@ -365,8 +365,17 @@
         if(day===5&&p.anticoagulant==='warfarin')
           manage+='; If LMWH was restarted, stop only once INR therapeutic and physician approves';
       }
-      if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===-1&&p.bleedingRisk==='high')
-        manage+=(manage?' | ':'')+'Check pre-op INR (aim at local procedural target; commonly <1.5 for major surgery). Review abnormal INR with surgeon';
+      if(day===-1){
+        const requirement=core.preopInrRequirement({
+          anticoagulant:p.anticoagulant,action:v.action,neuraxial:p.neuraxial
+        });
+        if(requirement){
+          const advice=requirement.kind==='neuraxial'
+            ?'ตรวจ INR ก่อน neuraxial: ต้องอยู่ใน normal range ตาม local laboratory; ทีมวิสัญญียืนยันก่อน needle placement (INR <1.5 เพียงอย่างเดียวไม่เพียงพอ)'
+            :'Check pre-op INR; TARGET INR <1.5 for elective major surgery. If INR >=1.5, consult surgeon/anesthetist before proceeding (confirm local procedural target)';
+          manage+=(manage?' | ':'')+advice;
+        }
+      }
       result.push({day,date:dateAt(p.operationDate,day),drug,manage});
     }
     return result;
@@ -391,6 +400,10 @@
       lines.push('Apixaban: '+(p.apixDose||'-')+' mg BID; ไม่ให้ therapeutic bridging เป็น routine');
       lines.push('หลังผ่าตัด: พิจารณา restart Apixaban ตาม bleeding risk เมื่อ hemostasis adequate และแพทย์ผู้ดูแลยืนยัน');
     }
+    const preopInr=core.preopInrRequirement({anticoagulant:p.anticoagulant,action:v.action,neuraxial:p.neuraxial});
+    if(preopInr)lines.push('ก่อนผ่าตัด: '+(preopInr.kind==='neuraxial'
+      ?'INR ต้องอยู่ใน normal range ของ local lab ก่อน neuraxial needle placement (ASRA)'
+      :'ตรวจ INR Day -1, goal INR <1.5; หาก INR >=1.5 ให้ consult surgeon/anesthetist และทบทวนแผน'));
     if(bridgeFootnote(p,v))lines.push(bridgeFootnote(p,v));
     if(p.indication==='af'&&p.bridgeChoice==='yes'&&val('preAFBridgeRationale'))
       lines.push('Individual AF bridging rationale: '+val('preAFBridgeRationale'));
@@ -416,7 +429,9 @@
       '</div>';
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>Date</th><th>Drug</th><th>Management / Suggestion</th></tr></thead><tbody>'+
       rows.map(r=>'<tr><td>'+r.day+'</td><td>'+esc(r.date)+'</td><td>'+esc(r.drug)+'</td><td>'+esc(r.manage)+'</td></tr>').join('')+'</tbody></table>';
+    const inrTarget=core.preopInrRequirement({anticoagulant:p.anticoagulant,action:v.action,neuraxial:p.neuraxial});
     const warn=(blocked?'<p class="pre-print-warning">DRAFT - NOT FOR MEDICATION ORDERS. Pending review.</p>':'')+
+      (inrTarget?'<p class="pre-print-note"><strong>Pre-op INR goal:</strong> '+esc(inrTarget.label)+'. '+esc(inrTarget.advice)+'</p>':'')+
       (bridgeFootnote(p,v)?'<p class="pre-print-note"><strong>Bridging note:</strong> '+esc(bridgeFootnote(p,v))+'</p>':'')+
       '<p class="pre-print-note">Post-op actions are CONDITIONAL: assess hemostasis/no bleeding and treating physician confirmation. Dates are suggested, not automatic orders.</p>';
     const footer='<footer class="pre-print-footer">Physician: '+esc(val('prePhysician')||'________________')+' &nbsp;&nbsp; Date: __________'+
