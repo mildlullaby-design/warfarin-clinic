@@ -21,7 +21,17 @@
     ['Cystoscopy without mucosal incision','minimal','Urology'],['Ureteral stent exchange (uncomplicated)','lowmod','Urology'],
     ['TURP','high','Urology'],['Kidney biopsy','high','Urology'],
     ['Paracentesis','minimal','Interventional'],['Thoracentesis','minimal','Interventional'],
-    ['US-guided thyroid FNA','minimal','Interventional'],['Lumbar puncture','high','Interventional']
+    ['US-guided thyroid FNA','minimal','Interventional'],['Lumbar puncture','high','Interventional'],
+    ['EGD diagnostic with/without mucosal biopsy','minimal','Endoscopy'],
+    ['Colonoscopy diagnostic with/without mucosal biopsy','minimal','Endoscopy'],
+    ['Endoscopic polypectomy <1 cm','lowmod','Endoscopy'],
+    ['Endoscopic polypectomy >=1 cm','high','Endoscopy'],
+    ['Endoscopic mucosal/submucosal resection','high','Endoscopy'],
+    ['ERCP without sphincterotomy','lowmod','Endoscopy'],['ERCP with sphincterotomy','high','Endoscopy'],
+    ['Bronchoscopy without biopsy (BAL)','minimal','Endoscopy'],
+    ['Bronchoscopy with transbronchial biopsy','high','Endoscopy'],
+    ['Punch skin biopsy','minimal','Dermatology'],['Wide skin excision','high','Dermatology'],
+    ['Superficial wound suture','minimal','General surgery']
   ];
   const guide='https://www.jthjournal.org/article/S1538-7836%2826%2900055-3/fulltext';
   const str=v=>String(v===null||v===undefined?'':v);
@@ -82,6 +92,32 @@
   const procedureHelp=document.createElement('div');procedureHelp.className='pre-reference-actions';
   procedureHelp.innerHTML='<button type="button" id="preRiskPopupOpen">View ISTH 2026 Risk Table</button><small>Search ได้; ถ้าไม่พบต้องจัดเป็น Unclassified ก่อน review</small>';
   $('preBleed').closest('.field').append(procedureHelp);
+  // Always-visible clinical quick-reference table, fed by the same list as procedure search.
+  const inlineRisk=document.createElement('section');
+  inlineRisk.id='preRiskInline';inlineRisk.className='pre-risk-inline';
+  inlineRisk.innerHTML='<div class="pre-risk-inline-head"><strong>Procedure Bleeding Risk - ISTH SSC 2026</strong>'+
+    '<a href="'+guide+'" target="_blank" rel="noopener noreferrer">Source Tables 1-11</a></div>'+
+    '<div class="pre-risk-inline-filters"><input id="preRiskInlineSearch" type="search" placeholder="ค้นหา procedure ในตาราง...">'+
+    '<select id="preRiskGroup" aria-label="ประเภทหัตถการ"><option value="">All specialties</option>'+
+    [...new Set(PROC.map(p=>p[2]))].sort().map(g=>'<option value="'+esc(g)+'">'+esc(g)+'</option>').join('')+'</select></div>'+
+    '<div class="pre-table-wrap pre-risk-scroll"><table><thead><tr><th>Procedure (กดเพื่อเลือก)</th><th>Bleeding risk</th><th>Specialty</th></tr></thead>'+
+    '<tbody id="preRiskInlineBody"></tbody></table></div>'+
+    '<small>ตารางสรุปหัตถการที่พบบ่อยจาก ISTH SSC 2026 ไม่ใช่การคัดลอกทั้ง 11 ตาราง; ตรวจรายละเอียดหัตถการจริงและ neuraxial anesthesia เพิ่มเติมเสมอ</small>';
+  $('preBleed').closest('.field').insertAdjacentElement('afterend',inlineRisk);
+  function paintInlineRisk(){
+    const q=val('preRiskInlineSearch').toLowerCase(),group=val('preRiskGroup');
+    const arr=PROC.filter(p=>(!group||p[2]===group)&&(p[0]+' '+p[2]).toLowerCase().includes(q));
+    $('preRiskInlineBody').innerHTML=arr.map(p=>'<tr><td><button type="button" data-inline-procedure="'+esc(p[0])+'">'+esc(p[0])+'</button></td>'+
+      '<td>'+esc(LABEL[p[1]])+'</td><td>'+esc(p[2])+'</td></tr>').join('')||
+      '<tr><td colspan="3">ไม่พบรายการ: ใช้ Other + Physician review</td></tr>';
+  }
+  $('preRiskInlineSearch').oninput=paintInlineRisk;
+  $('preRiskGroup').onchange=paintInlineRisk;
+  $('preRiskInlineBody').onclick=e=>{
+    const b=e.target.closest('[data-inline-procedure]');if(!b)return;
+    $('preProcedure').value=b.dataset.inlineProcedure;chooseProcedure();
+  };
+  paintInlineRisk();
   const otherCheck=document.createElement('label');
   otherCheck.id='preOtherReviewWrap';otherCheck.className='check hidden';
   otherCheck.innerHTML='<input type="checkbox" id="preOtherVerified"> ไม่พบรายการ ISTH: แพทย์ตรวจสอบ procedure และยืนยัน bleeding risk ที่เลือกเองแล้ว';
