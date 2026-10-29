@@ -42,11 +42,7 @@
   root.append(resultScreen);
   resultScreen.append(output,print);
 
-  const oldRisk=$('preRecentStroke')?.closest('.pre-subsection');
-  if(oldRisk)oldRisk.classList.add('hidden');
-  $('preValveWrap').classList.add('hidden');
-  // Remove extra patient identifier from the default workflow.
-  $('preHN')?.closest('.field')?.classList.add('hidden');
+  // Only the new indication-specific clinical-risk form is displayed.
   $('preTime')?.closest('.field')?.classList.add('pre-conditional-time');
   $('preLastApix')?.closest('.field')?.classList.add('pre-conditional-time');
 
@@ -74,7 +70,7 @@
   '<div class="field"><label for="preVTECancer">Cancer history</label><select id="preVTECancer"><option value="">เลือก</option><option value="none">ไม่มี Active cancer หรือประวัติภายใน 5 ปี</option><option value="high">Active pancreatic / primary brain / gastric / esophageal cancer / MPN</option><option value="other">Other active cancer</option><option value="history">Cancer history ภายใน 5 ปี (ไม่ active)</option><option value="unknown">ไม่ทราบ</option></select></div>'+
   '<div class="field"><label for="preVTEClot">Previous VTE during anticoagulant interruption</label><select id="preVTEClot"><option value="">เลือก</option><option value="no">ไม่เคย</option><option value="yes">เคย</option><option value="unknown">ไม่ทราบ</option></select></div></div></div>'+
   '<label class="check"><input type="checkbox" id="preRiskV2Confirm"> Physician reviewed thrombotic risk / guideline recommendation</label>';
-  oldRisk?.insertAdjacentElement('afterend',risk);
+  $('preBridgeFields').insertAdjacentElement('beforebegin',risk);
   inputScreen.querySelector('.pre-actions')?.insertAdjacentHTML('beforeend','<span class="muted">สร้าง Draft ก่อน แล้วตรวจและยืนยันบนหน้าถัดไป</span>');
 
   const procedureField=$('preProcedure').closest('.field');
@@ -121,7 +117,7 @@
   $('prePrint').insertAdjacentElement('beforebegin',draft);
   $('prePreview').textContent='Generate Plan / Preview A4';
   $('preConfirm').parentElement.lastChild.textContent=' แพทย์ยืนยันว่าได้ตรวจ risk, ขนาดยา, วันที่ และเงื่อนไขการเริ่มยาแล้ว';
-  $('prePrint').textContent='Print Final A4';
+  $('prePrint').textContent='Print Final A4 (Clinician Review)';
   $('preNotes').textContent='';
 
   const selectedValues=name=>[...root.querySelectorAll('input[name="'+name+'"]:checked')].map(x=>x.value);
@@ -245,6 +241,7 @@
       '<br>Indication: '+esc(LABEL[p.indication]||'-')+' · Anticoagulant: '+esc(LABEL[p.anticoagulant]||'-')+
       ' · Procedure: '+esc(p.procedure||'-')+
       '<br>Bleeding risk: '+esc(LABEL[p.bleedingRisk]||'-')+' · CrCl: '+esc(p.crCl||'-')+' mL/min'+
+      (p.indication==='mechanical'?' · Valve: '+esc(selectedValues('preValveAt').join('+')||'Unknown'):'')+
       (p.anticoagulant==='warfarin'?' · Warfarin '+esc(p.weeklyDose)+' mg/wk · Target INR '+esc(val('preTargetInr')):' · Apixaban '+esc(p.apixDose)+' mg BID')+
       '</div>';
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>Date</th><th>Drug</th><th>Management / Suggestion</th></tr></thead><tbody>'+
@@ -342,7 +339,10 @@
     resultScreen.classList.add('hidden');inputScreen.classList.remove('hidden');switchFields();
     root.scrollIntoView({behavior:'smooth',block:'start'});
   };
-  $('preDrug').addEventListener('change',()=>{if(val('preDrug')==='apixaban'&&val('preIndication')==='mechanical')$('preIndication').value='';});
+  $('preDrug').addEventListener('change',()=>{if(val('preDrug')==='apixaban'&&val('preIndication')==='mechanical'){
+    alert('Mechanical heart valve ไม่รองรับ DOAC: โปรดทบทวน indication และ anticoagulant');
+    $('preIndication').value='';
+  }});
   $('preIndication').addEventListener('change',()=>{if(val('preDrug')==='apixaban'&&val('preIndication')==='mechanical'){
     alert('Mechanical heart valve ไม่รองรับ DOAC. กรุณาเลือก Warfarin หรือเปลี่ยน indication ตามข้อมูลจริง');
     $('preIndication').value='';
