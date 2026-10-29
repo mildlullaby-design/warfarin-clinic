@@ -167,6 +167,9 @@
       if (p.neuraxial==='yes') {
         sources.add(SOURCES.ASRA);
         if(number(p.apixDose)>=5) {
+          // Use the verified last-dose CLOCK TIME; never publish a conflicting
+          // bleeding-risk-derived calendar date when an ASRA timed hold applies.
+          holdDays = Math.max(holdDays,3);
           const h=clockHours(p.lastDoseDateTime,operation,p.operationTime);
           if(!Number.isFinite(h)) blockers.push('ASRA high-dose Apixaban: operation time and exact last-dose datetime required.');
           else if(h<72) blockers.push('ASRA high-dose Apixaban: last dose to needle placement must be ≥72 h.');
@@ -175,7 +178,8 @@
       }
       if (action==='continue') instructions.push('Continue usual Apixaban regimen for this minimal-risk procedure unless procedure team directs otherwise.');
       else {
-        if(holdDays>0) instructions.push('Omit Apixaban from '+d(-holdDays)+' (Day -'+holdDays+') through surgery '+d(0)+' (Day 0); last planned dose on '+d(-holdDays-1)+' (Day -'+(holdDays+1)+').');
+        if(p.neuraxial==='yes' && number(p.apixDose)>=5) instructions.push('ASRA timed interruption: last dose '+(p.lastDoseDateTime||'[not entered]')+'; verify ≥72 h before neuraxial needle placement at '+(p.operationTime||'[time unknown]')+' on '+d(0)+'. Do not substitute a date-only hold for the clock-hour verification.');
+        else if(holdDays>0) instructions.push('Omit Apixaban from '+d(-holdDays)+' (Day -'+holdDays+') through surgery '+d(0)+' (Day 0); last planned dose on '+d(-holdDays-1)+' (Day -'+(holdDays+1)+').');
         else instructions.push('Neuraxial-specific Apixaban interruption requires the verified ASRA interval; do not use minimal-risk continuation.');
         if (bleed==='high') restart='Conditional Apixaban restart window '+d(2)+' (Day +2) to '+d(3)+' (Day +3), ≥48–72 h post-op; adequate hemostasis and treating team confirmation required.';
         else restart='Consider restarting Apixaban '+d(1)+' (Day +1), ≥24 h post-op ONLY after adequate hemostasis and treating team confirmation.';
