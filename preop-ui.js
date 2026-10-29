@@ -284,6 +284,73 @@
     if(p.neuraxial!=='no')b.push('Neuraxial/deep plexus: ต้องยืนยันแผนกับวิสัญญีและตรวจ ASRA timing ก่อน Final.');
     return b;
   }
+  // Visual checklist: red controls identify fields that need input/review before Final.
+  const REVIEW_FIELDS=['preDrug','preIndication','preProcedure','preBleed','preOtherVerified','preDate',
+    'preRiskV2Confirm','preScore','preAFStroke','preAFClot','preValveAt','preVTETime',
+    'preVTEType','preVTERecur','preVTEThromb','preVTECancer','preVTEClot',
+    'preWeekly','preTargetInr','preApixDose','preCrCl','preWeight','preBridgeConfirmed',
+    'preLmwhDose','preAFBridgeRationale','preNeuraxial','preRenalHold'];
+  function reviewControl(id){
+    return $(id) || (id==='preValveAt'?root.querySelector('input[name="preValveAt"]'):null);
+  }
+  function issueTarget(message){
+    const m=message.toLowerCase();
+    if(m.includes('select warfarin'))return 'preDrug';
+    if(m.includes('primary indication')||m.includes('apixaban + mechanical'))return 'preIndication';
+    if(m.includes('procedure name'))return 'preProcedure';
+    if(m.includes('bleeding risk')||m.includes('other procedure'))return m.includes('other procedure')?'preOtherVerified':'preBleed';
+    if(m.includes('operation date')||m.includes('invalid operation'))return 'preDate';
+    if(m.includes('thrombotic risk')||m.includes('risk/bridging decision')||m.includes('exceptional'))return 'preRiskV2Confirm';
+    if(m.includes('cha2ds2-va'))return 'preScore';
+    if(m.includes('stroke/tia')&&m.includes('perioperative'))return 'preAFStroke';
+    if(m.includes('mechanical valve')||m.includes('aortic mhv'))return 'preValveAt';
+    if(m.includes('vte timing')||m.includes('recent vte'))return 'preVTETime';
+    if(m.includes('dvt / pe'))return 'preVTEType';
+    if(m.includes('recurrent vte'))return 'preVTERecur';
+    if(m.includes('thrombophilia'))return 'preVTEThromb';
+    if(m.includes('cancer history'))return 'preVTECancer';
+    if(m.includes('previous perioperative vte'))return 'preVTEClot';
+    if(m.includes('weekly dose')||m.includes('warfarin regimen'))return 'preWeekly';
+    if(m.includes('apixaban dose')||m.includes('apixaban regimen'))return 'preApixDose';
+    if(m.includes('crcl')||m.includes('renal impairment'))return 'preCrCl';
+    if(m.includes('body weight'))return 'preWeight';
+    if(m.includes('explicitly confirm therapeutic bridging')||m.includes('physician must explicitly confirm'))return 'preBridgeConfirmed';
+    if(m.includes('lmwh dose'))return 'preLmwhDose';
+    if(m.includes('af: chest'))return 'preAFBridgeRationale';
+    if(m.includes('neuraxial')||m.includes('asra'))return 'preNeuraxial';
+    return null;
+  }
+  function highlightReviewFields(p,blockers){
+    REVIEW_FIELDS.forEach(id=>{
+      const el=reviewControl(id);if(!el)return;
+      const wrap=el.closest('.field, .check, .pre-checkrow')||el.parentElement;
+      wrap?.classList.remove('pre-needs-attention');
+      el.removeAttribute('aria-invalid');
+      wrap?.querySelectorAll('.pre-input-error-hint').forEach(x=>x.remove());
+    });
+    const required=new Set(blockers.map(issueTarget).filter(Boolean));
+    if(p.indication==='af'&&(!val('preAFStroke')||!val('preAFClot'))){
+      if(!val('preAFStroke'))required.add('preAFStroke');
+      if(!val('preAFClot'))required.add('preAFClot');
+    }
+    if(p.anticoagulant==='warfarin'){
+      if(!Number.isFinite(num('preWeekly'))||num('preWeekly')<=0)required.add('preWeekly');
+      if(!val('preTargetInr'))required.add('preTargetInr');
+    }
+    if(p.anticoagulant==='warfarin'&&p.bridgeChoice==='yes'&&!val('preLmwhDose'))required.add('preLmwhDose');
+    for(const id of required){
+      const el=reviewControl(id);if(!el)continue;
+      const wrap=el.closest('.field, .check, .pre-checkrow')||el.parentElement;
+      wrap?.classList.add('pre-needs-attention');
+      el.setAttribute('aria-invalid','true');
+      if(wrap&&!wrap.querySelector('.pre-input-error-hint')){
+        const hint=document.createElement('small');hint.className='pre-input-error-hint';
+        hint.textContent='! ต้องกรอกหรือทบทวนก่อน Final';
+        wrap.append(hint);
+      }
+    }
+    return required;
+  }
   function switchFields(){
     const drug=val('preDrug'),ind=val('preIndication'),bridge=val('preBridge')==='yes';
     $('preWarfarinFields').classList.toggle('hidden',drug!=='warfarin');
@@ -452,7 +519,13 @@
     activePlan={p,v,blockers};rows=makeRows(p,v);
     $('preStatus').textContent=blockers.length?'DRAFT - รอ Physician Review':'พร้อมให้แพทย์ยืนยัน Final';
     $('preStatus').className='pre-status'+(blockers.length?' blocked':'');
-    $('preSafety').innerHTML=blockers.length?'<h3>ต้องตรวจสอบก่อน Final</h3><ul>'+blockers.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'';
+    const required=highlightReviewFields(p,blockers);
+    $('preSafety').innerHTML=blockers.length
+      ?'<h3>! ต้องแก้ไขก่อน Final ('+blockers.length+' รายการ)</h3><p class="pre-safety-guide">ช่องที่ต้องกรอก/ทบทวนมีกรอบสีแดงในหน้า Assessment กด "ไปกรอก" เพื่อแก้ไขได้ทันที</p><ul>'+
+        blockers.map(x=>'<li><span>'+esc(x)+'</span>'+
+          (issueTarget(x)?'<button type="button" class="pre-goto-field" data-fix-input="'+esc(issueTarget(x))+'">ไปกรอก</button>':'')+
+          '</li>').join('')+'</ul>'
+      :'<p>ไม่มีข้อมูลที่บังคับทบทวนเพิ่มเติม</p>';
     if(v.warnings.length)$('preSafety').innerHTML+='<h3>Safety reminders</h3><ul>'+v.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
     $('prePlan').innerHTML='<p><strong>Guideline suggestion:</strong> '+esc(v.action==='continue'?'Continue':v.action==='hold'?'Interrupt / hold '+v.holdDays+' days':'Physician review')+
       '; Bridging selected: '+esc(v.bridging?'Yes (physician-selected)':'No')+'</p>'+
@@ -491,6 +564,16 @@
     root.scrollIntoView({behavior:'smooth',block:'start'});
   };
   $('preBack').onclick=()=>{resultScreen.classList.add('hidden');inputScreen.classList.remove('hidden');root.scrollIntoView({behavior:'smooth',block:'start'});};
+  $('preSafety').addEventListener('click',e=>{
+    const b=e.target.closest('button[data-fix-input]');if(!b)return;
+    resultScreen.classList.add('hidden');inputScreen.classList.remove('hidden');
+    const target=reviewControl(b.dataset.fixInput);
+    if(target){
+      const details=target.closest('details');if(details)details.open=true;
+      target.scrollIntoView({behavior:'smooth',block:'center'});
+      target.focus({preventScroll:true});
+    }
+  });
   $('preGrid').addEventListener('input',e=>{
     const t=e.target,idx=Number(t.dataset.row),col=t.dataset.col;
     if(!Number.isInteger(idx)||!rows[idx]||!['drug','manage'].includes(col))return;
@@ -532,6 +615,7 @@
     });
     $('preLmwhMgKg').value='1';lmwhDoseEdited=false;refreshLmwhDose();$('preDailyTotal').textContent='';mappedProcedure=false;$('preBleed').disabled=false;$('preOtherVerified').checked=false;$('preOtherReviewWrap').classList.add('hidden');
     rows=[];activePlan=null;confirmed=-1;revision++;
+    highlightReviewFields({},[]);
     $('prePrintSurface').innerHTML='';$('preOPDNote').value='';$('preCopyStatus').textContent='';
     resultScreen.classList.add('hidden');inputScreen.classList.remove('hidden');switchFields();
     root.scrollIntoView({behavior:'smooth',block:'start'});
