@@ -1161,3 +1161,27 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
     margin-top:5mm!important;break-inside:avoid!important;
   }
 }
+
+
+/* On-screen A4 preview uses the same readable 14pt scale as printed output. */
+@media screen{
+  #prePrintSurface{
+    font-family:"Sarabun","TH Sarabun New",Tahoma,sans-serif!important;
+    font-size:14pt!important;line-height:1.25!important;
+    width:100%;max-width:210mm!important;min-height:0!important;
+    padding:14mm!important;margin:16px auto!important;
+  }
+  #prePrintSurface .pre-print-heading{font-size:16pt!important}
+  #prePrintSurface .pre-print-grid,
+  #prePrintSurface .pre-print-grid td,
+  #prePrintSurface .pre-print-grid th,
+  #prePrintSurface .pre-print-note,
+  #prePrintSurface .pre-bridging-print,
+  #prePrintSurface .pre-print-warning{
+    font-size:14pt!important;line-height:1.2!important;
+  }
+  #prePrintSurface .pre-print-grid td,#prePrintSurface .pre-print-grid th{
+    padding:3pt!important;text-align:left!important;
+  }
+  #prePrintSurface .pre-reference-line{font-size:9pt!important}
+}
