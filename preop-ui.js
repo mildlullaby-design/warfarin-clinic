@@ -595,7 +595,7 @@
     const bridgingText=bridgeFootnote(p,v);
     const bridgingPrint=bridgingText
       ?'<section class="pre-bridging-print"><strong>Bridging note:</strong>'+
-        '<ul><li>'+esc(bridgingText.replace(/^Bridging note:\\s*/i,''))+'</li></ul></section>'
+        '<ul><li>'+esc(bridgingText.replace(/^Bridging note:\s*/i,''))+'</li></ul></section>'
       :'';
     const warn=(blocked?'<p class="pre-print-warning">DRAFT - NOT FOR MEDICATION ORDERS. Pending review.</p>':'')+
       anesthesiaAlerts.map(x=>'<p class="pre-print-warning">'+esc(x)+'</p>').join('')+
