@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '0.11.1-preop-replacement';
+const APP_VERSION = '0.11.2-apixaban-calendar-merge';
 const CACHE_PREFIX = 'warfarin-dose-optimizer-';
 const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}`;
 const APP_SHELL = [
