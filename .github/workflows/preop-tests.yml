@@ -1,0 +1,21 @@
+name: Pre-op clinical unit tests
+on:
+  push:
+    branches: [feature/preop-test-foundation-20261029]
+  pull_request:
+    paths: ['preop-*.js', 'preop-*.cjs', '.github/workflows/preop-tests.yml']
+  workflow_dispatch:
+jobs:
+  preop-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check (engine + UI)
+        run: |
+          node --check preop-core.js
+          node --check preop-ui.js
+      - name: Run clinical logic acceptance tests
+        run: node --test preop-core.test.cjs
