@@ -205,7 +205,7 @@
           // bleeding-risk-derived calendar date when an ASRA timed hold applies.
           holdDays = Math.max(holdDays,3);
           const h=clockHours(p.lastDoseDateTime,operation,p.operationTime);
-          if(!Number.isFinite(h)) blockers.push('ASRA high-dose Apixaban: operation time and exact last-dose datetime required.');
+          if(!Number.isFinite(h)) warnings.push('ASRA high-dose Apixaban: exact time not entered (optional); anesthesia team must verify the >=72 h interval and catheter timing before procedure.');
           else if(h<72) blockers.push('ASRA high-dose Apixaban: last dose to needle placement must be ≥72 h.');
           if (Number.isFinite(h) && h>=72)warnings.push('ASRA ≥72 h interruption verified from entered times; anesthesia team must confirm needle/catheter details.');
         } else blockers.push('ASRA Apixaban dose category not safely classifiable: physician/anesthesia review required.');
