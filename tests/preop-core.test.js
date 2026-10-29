@@ -410,13 +410,13 @@ test('Day -1 therapeutic bridging and pre-op INR are separate lines with exact c
     crCl:'65',weightKg:'50',bridgeChoice:'yes',lmwhMgPerDose:'50'};
   const v=core.plan(p),r=makeRows(p,v).find(x=>x.day===-1);
   assert.equal(r.manage,
-    'Hold enoxaparin at least 24 h before surgery\nCheck pre-op INR; keep <1.5 for elective major surgery');
+    'Hold enoxaparin at least 24 h before\nsurgery\nCheck pre-op INR; keep <1.5 for elective major surgery');
   const startRender=ui.indexOf('  function isMergedPostOp('),
     endRender=ui.indexOf('  const printHtml=',startRender);
   const rendered=new Function('esc',ui.slice(startRender,endRender)+'return printableRow;')(
     s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'));
   const printed=rendered(r,p);
-  assert.match(printed,/Hold enoxaparin at least 24 h before surgery<br>Check pre-op INR; keep &lt;1.5 for elective major surgery/);
+  assert.match(printed,/Hold enoxaparin at least 24 h before<br>surgery<br>Check pre-op INR; keep &lt;1.5 for elective major surgery/);
   // A neuraxial plan must retain the stricter, locally normalized INR target.
   const neuro=makeRows({...p,neuraxial:'yes'},core.plan({...p,neuraxial:'yes'})).find(x=>x.day===-1);
   assert.match(neuro.manage,/local laboratory normal range/);
