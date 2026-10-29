@@ -581,7 +581,10 @@
       ' · Age: '+esc(val('preAge')||'____')+' · Operation: '+esc(p.operationDate?core.thaiDate(p.operationDate):'________')+
       '<br>Indication: '+esc(LABEL[p.indication]||'-')+' · Anticoagulant: '+esc(LABEL[p.anticoagulant]||'-')+
       ' · Procedure: '+esc(p.procedure||'-')+
-      '<br>Bleeding risk: '+esc(LABEL[p.bleedingRisk]||'-')+' · CrCl: '+esc(p.crCl||'-')+' mL/min'+
+      '<br>Bleeding risk: '+esc(LABEL[p.bleedingRisk]||'-')+
+      ' · Cr: '+esc(val('preCr')||'-')+' mg/dL'+
+      ' · BW: '+esc(p.weightKg||'-')+' kg'+
+      ' · CrCl: '+esc(p.crCl||'-')+' mL/min'+
       (p.indication==='mechanical'?' · Valve: '+esc(selectedValues('preValveAt').join('+')||'Unknown'):'')+
       (p.anticoagulant==='warfarin'?' · Warfarin '+esc(p.weeklyDose)+' mg/wk · Target INR '+esc(targetInr()):' · Apixaban '+esc(p.apixDose)+' mg BID')+
       '</div>';
@@ -594,14 +597,29 @@
         :'Anesthesia technique not established: if neuraxial/deep plexus is selected, anesthesiologist must review ASRA interruption, INR and catheter plan before block.')+'</p>'
       :'';
     const anesthesiaAlerts=v.warnings.filter(x=>x.startsWith('ANESTHESIA ALERT:'));
+    const bridgingText=bridgeFootnote(p,v);
+    const bridgingParts=bridgingText
+      ?bridgingText.replace(/^Bridging note:\s*/i,'')
+        .split(/\.\s+(?=Last therapeutic|ยืนยัน|ถ้า Neuraxial)/)
+        .map((part,i,items)=>part.trim()+(i<items.length-1?'.':''))
+      :[];
+    const bridgingPrint=bridgingParts.length
+      ?'<section class="pre-bridging-print"><strong>Bridging note:</strong>'+
+        bridgingParts.map(part=>'<p>'+esc(part)+'</p>').join('')+'</section>'
+      :'';
     const warn=(blocked?'<p class="pre-print-warning">DRAFT - NOT FOR MEDICATION ORDERS. Pending review.</p>':'')+
       anesthesiaAlerts.map(x=>'<p class="pre-print-warning">'+esc(x)+'</p>').join('')+
       (inrTarget?'<p class="pre-print-note"><strong>Pre-op INR goal:</strong> '+esc(inrTarget.label)+'. '+esc(inrTarget.advice)+'</p>':'')+
-      (bridgeFootnote(p,v)?'<p class="pre-print-note"><strong>Bridging note:</strong> '+esc(bridgeFootnote(p,v))+'</p>':'')+
+      bridgingPrint+
       anestheticHandoff+
       '<p class="pre-print-note">Post-op actions are CONDITIONAL: assess hemostasis/no bleeding and treating physician confirmation. Dates are suggested, not automatic orders.</p>';
-    const footer='<footer class="pre-print-footer">Physician: '+esc(val('prePhysician')||'________________')+' &nbsp;&nbsp; Date: __________'+
-      '<small>Clinical draft references: ISTH SSC 2026; ESC/EACTS 2025; ESC AF 2024; CHEST 2022; JAMA 2024; ASRA 2025. Validate locally.</small></footer>';
+    const footer='<footer class="pre-print-footer">'+
+      '<div class="pre-signature-block">'+
+      '<div class="pre-signature-line">ลงชื่อ ............................................................</div>'+
+      '<div class="pre-signature-name">('+esc(val('prePhysician')||'........................................................')+')</div>'+
+      '<div class="pre-signature-date">วันที่ ............ / ............ / ............</div>'+
+      '</div>'+
+      '<small class="pre-reference-line">Clinical draft references: ISTH SSC 2026; ESC/EACTS 2025; ESC AF 2024; CHEST 2022; JAMA 2024; ASRA 2025. Validate locally.</small></footer>';
     return hdr+tbl+warn+footer;
   };
   function renderPlan(){
