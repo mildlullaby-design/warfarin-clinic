@@ -120,6 +120,38 @@
   $('prePrint').textContent='Print Final A4 (Clinician Review)';
   $('preNotes').textContent='';
 
+  // Hybrid current Warfarin regimen: weekly total or optional 7-day mg schedule.
+  const dailyWidget=document.createElement('details');dailyWidget.className='pre-subsection';
+  dailyWidget.innerHTML='<summary>ตาราง Warfarin 7 วัน (Optional)</summary><p class="muted">กรอกเป็น mg/day จ-อา; ใส่ 0 สำหรับวันเว้นยา หากกรอกครบจะคำนวณ Weekly dose ให้อัตโนมัติ</p>'+
+    '<div class="pre-daily-grid">'+['จ','อ','พ','พฤ','ศ','ส','อา'].map((d,i)=>'<label>'+d+'<input type="number" id="preDaily'+i+'" min="0" step="0.1" placeholder="mg"></label>').join('')+'</div>'+
+    '<small id="preDailyTotal"></small>';
+  $('preWarfarinFields').append(dailyWidget);
+  function dailyValues(){
+    const values=Array.from({length:7},(_,i)=>val('preDaily'+i));
+    if(!values.some(Boolean))return null;
+    if(!values.every(x=>x!==''&&Number.isFinite(Number(x))&&Number(x)>=0))return 'incomplete';
+    return values.map(Number);
+  }
+  function dailyFor(day,op){
+    const values=dailyValues();
+    if(!Array.isArray(values)||!op)return null;
+    try {const date=core.shiftDate(op,day),weekday=(core.iso(date).getUTCDay()+6)%7;return values[weekday];}
+    catch{return null;}
+  }
+  dailyWidget.addEventListener('input',()=>{
+    const values=dailyValues();
+    if(Array.isArray(values)){
+      const total=values.reduce((a,b)=>a+b,0);
+      $('preWeekly').value=String(Number(total.toFixed(2)));
+      $('preDailyTotal').textContent='รวม '+total.toFixed(1)+' mg/week';
+    }else $('preDailyTotal').textContent=values==='incomplete'?'กรอกให้ครบ 7 วัน (ระบุ 0 ได้)':'';
+  });
+  $('preApixDose').insertAdjacentHTML('beforeend','<option value="other">Other (Physician review)</option>');
+  const apixOther=document.createElement('div');apixOther.className='field hidden';apixOther.id='preApixOtherWrap';
+  apixOther.innerHTML='<label for="preApixOther">Other Apixaban regimen (ระบุเพื่อทบทวน)</label><input id="preApixOther" placeholder="ขนาดยาและความถี่ เช่น 5 mg OD"><small>Non-standard dose: Draft only จนกว่าจะตรวจ clinical rules</small>';
+  $('preApixDose').closest('.field').insertAdjacentElement('afterend',apixOther);
+
+
   const selectedValues=name=>[...root.querySelectorAll('input[name="'+name+'"]:checked')].map(x=>x.value);
   function input(){
     const age=val('preAge'),sex=val('preSex'),wt=val('preWeight'),scr=val('preCr');
@@ -162,6 +194,8 @@
       if(['lt1','lt3'].includes(val('preVTETime')))b.push('Recent VTE: elective surgery timing and interruption need individualized physician review.');
     }
     if(p.anticoagulant==='warfarin' && (!Number.isFinite(num('preWeekly'))||num('preWeekly')<=0||!val('preTargetInr')))b.push('Warfarin: ระบุ Weekly dose และ Target INR');
+    if(p.anticoagulant==='warfarin'&&dailyValues()==='incomplete')b.push('Warfarin regimen รายวัน: ต้องกรอกครบทั้ง 7 วัน หรือเว้นว่างทั้งหมด');
+    if(p.anticoagulant==='apixaban'&&val('preApixDose')==='other')b.push('Other Apixaban regimen: ต้องตรวจแผนและขนาดยากับแพทย์ก่อนใช้เป็น Final');
     if(p.neuraxial!=='no')b.push('Neuraxial/deep plexus: ต้องยืนยันแผนกับวิสัญญีและตรวจ ASRA timing ก่อน Final.');
     return b;
   }
@@ -170,6 +204,7 @@
     $('preWarfarinFields').classList.toggle('hidden',drug!=='warfarin');
     $('preApixFields').classList.toggle('hidden',drug!=='apixaban');
     $('preBridgeFields').classList.toggle('hidden',drug!=='warfarin'||!bridge);
+    $('preApixOtherWrap').classList.toggle('hidden',val('preApixDose')!=='other');
     $('preAFExtra').classList.toggle('hidden',ind!=='af');
     $('preValveExtra').classList.toggle('hidden',ind!=='mechanical');
     $('preVTEExtra').classList.toggle('hidden',ind!=='vte');
@@ -181,12 +216,16 @@
     for(let day=-7;day<=7;day++){
       let drug='',manage='';
       const holding=v.action==='hold'&&Number.isInteger(v.holdDays)&&day>=-v.holdDays&&day<=0;
-      if(day<0)drug=v.action==='continue'?'Continue '+LABEL[p.anticoagulant]:(holding?'Hold '+LABEL[p.anticoagulant]:'Usual '+LABEL[p.anticoagulant]+' regimen');
+      if(day<0){
+        drug=v.action==='continue'?'Continue '+LABEL[p.anticoagulant]:(holding?'Hold '+LABEL[p.anticoagulant]:'Usual '+LABEL[p.anticoagulant]+' regimen');
+        const dose=p.anticoagulant==='warfarin'&&!holding?dailyFor(day,p.operationDate):null;
+        if(dose!==null)drug+=' ('+dose+' mg)';
+      }
       if(day===0){drug='PROCEDURE';manage='ผ่าตัด / ตรวจสอบ hemostasis';}
       if(day>0){
         drug='Post-op: treating team to confirm';
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===1)
-          manage='Suggest restart Warfarin usual maintenance dose if stable / no bleeding / hemostasis adequate';
+          manage='Suggest restart Warfarin '+(dailyFor(day,p.operationDate)===null?'usual maintenance dose':dailyFor(day,p.operationDate)+' mg')+' if stable / no bleeding / hemostasis adequate';
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===5)
           manage='Suggest INR check (4 days after planned Day +1 restart); adjust if actual restart delayed. Target INR '+val('preTargetInr');
         if(p.anticoagulant==='apixaban'&&v.action==='hold'&&((p.bleedingRisk==='high'&&day===2)||(p.bleedingRisk!=='high'&&day===1)))
@@ -333,7 +372,7 @@
       else if(e.tagName==='SELECT')e.selectedIndex=0;
       else e.value='';
     });
-    $('preLmwhMgKg').value='1';mappedProcedure=false;$('preBleed').disabled=false;$('preOtherVerified').checked=false;$('preOtherReviewWrap').classList.add('hidden');
+    $('preLmwhMgKg').value='1';$('preDailyTotal').textContent='';mappedProcedure=false;$('preBleed').disabled=false;$('preOtherVerified').checked=false;$('preOtherReviewWrap').classList.add('hidden');
     rows=[];activePlan=null;confirmed=-1;revision++;
     $('prePrintSurface').innerHTML='';$('preOPDNote').value='';$('preCopyStatus').textContent='';
     resultScreen.classList.add('hidden');inputScreen.classList.remove('hidden');switchFields();
