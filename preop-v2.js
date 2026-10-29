@@ -86,6 +86,10 @@
   const procedureHelp=document.createElement('div');procedureHelp.className='pre-reference-actions';
   procedureHelp.innerHTML='<button type="button" id="preRiskPopupOpen">View ISTH 2026 Risk Table</button><small>Search ได้; ถ้าไม่พบต้องจัดเป็น Unclassified ก่อน review</small>';
   $('preBleed').closest('.field').append(procedureHelp);
+  const otherCheck=document.createElement('label');
+  otherCheck.id='preOtherReviewWrap';otherCheck.className='check hidden';
+  otherCheck.innerHTML='<input type="checkbox" id="preOtherVerified"> ไม่พบรายการ ISTH: แพทย์ตรวจสอบ procedure และยืนยัน bleeding risk ที่เลือกเองแล้ว';
+  $('preBleed').closest('.field').append(otherCheck);
   const dialog=document.createElement('dialog');dialog.id='preRiskPopup';
   dialog.innerHTML='<div class="pre-dialog-head"><h3>ISTH SSC 2026 - Procedural bleeding risk</h3><button type="button" id="preRiskPopupClose">ปิด</button></div>'+
   '<input id="preRiskFilter" type="search" placeholder="ค้นหา procedure ในตารางตัวอย่าง..." aria-label="ค้นหา procedure">'+
@@ -102,10 +106,12 @@
     mappedProcedure=!!found;
     $('preBleed').value=found?found[1]:'';
     $('preBleed').disabled=!!found;
+    $('preOtherVerified').checked=false;
+    $('preOtherReviewWrap').classList.toggle('hidden',!!found);
     changed();
   }
   $('preProcedure').addEventListener('change',chooseProcedure);
-  $('preProcedure').addEventListener('input',()=>{mappedProcedure=false;$('preBleed').disabled=false;$('preBleed').value='';changed();});
+  $('preProcedure').addEventListener('input',()=>{mappedProcedure=false;$('preBleed').disabled=false;$('preBleed').value='';$('preOtherVerified').checked=false;$('preOtherReviewWrap').classList.remove('hidden');changed();});
 
   const note=document.createElement('section');note.className='pre-subsection';note.innerHTML='<h3>Copy OPD Note</h3><p class="muted">ภาษาไทย + medical terms ภาษาอังกฤษ · Plain text สำหรับ HOSxP · ไม่บันทึกข้อมูลผู้ป่วย</p><textarea id="preOPDNote" rows="8" readonly></textarea><div class="pre-actions"><button id="preCopyNote" type="button" class="primary">Copy OPD Note</button><span id="preCopyStatus" aria-live="polite"></span></div>';
   resultScreen.append(note);
@@ -124,7 +130,7 @@
     const calc=core.crclCG(age,sex,wt,scr);
     const crCl=val('preCrCl')||(Number.isFinite(calc)?calc.toFixed(1):'');
     const indication=val('preIndication'),vs=selectedValues('preValveAt'),vf=selectedValues('preValveFactor'),vt=val('preVTETime');
-    const recent=indication==='af'?val('preAFStroke')==='recent':indication==='vte'&&(vt==='lt1'||vt==='lt3'):vf.includes('recent');
+    const recent=indication==='af'?val('preAFStroke')==='recent':indication==='vte'?(vt==='lt1'||vt==='lt3'):vf.includes('recent');
     const clot=indication==='af'?val('preAFClot'):indication==='vte'?val('preVTEClot'):'';
     const thromb=indication==='vte'?[ 'aps','severe' ].includes(val('preVTEThromb')):vf.includes('hyper');
     return {
@@ -143,7 +149,7 @@
   }
   function extraBlockers(p){
     const b=[],ind=p.indication;
-    if(!mappedProcedure)b.push('Procedure ยังไม่ได้ match กับ ISTH reference list; ต้องทบทวน bleeding risk และ guideline ก่อน Final.');
+    if(!mappedProcedure && !checked('preOtherVerified'))b.push('Other procedure: แพทย์ต้องยืนยัน bleeding risk ที่ประเมินเองก่อน Final.');
     if(!checked('preRiskV2Confirm'))b.push('ยังไม่ได้ยืนยันการประเมิน Thrombotic risk');
     if(ind==='af'){
       const score=num('preScore');
@@ -262,14 +268,15 @@
     $('preNotes').textContent=p.neuraxial!=='no'?v.neuraxialNote:'';
     buildTable();
     $('preOPDNote').value=noteText(p,v,blockers);
-    $('prePrintSurface').innerHTML=printHtml(p,v,true);
+    refreshRendered();
     $('prePrintSurface').classList.add('pre-draft');
     $('preConfirm').checked=false;$('prePrint').disabled=true;confirmed=-1;
   }
   function refreshRendered(){
     if(!activePlan)return;
     const {p,v,blockers}=activePlan;
-    $('preOPDNote').value=noteText(p,v,blockers)+'\n'+rows.filter(r=>r.manage).map(r=>'Day '+(r.day>0?'+':'')+r.day+': '+r.manage).join('\n');
+    const significant=rows.filter(r=>r.day===0||r.manage||r.drug.startsWith('Hold')).filter((r,i,a)=>r.day===0||r.manage||!a.slice(0,i).some(x=>x.drug===r.drug));
+    $('preOPDNote').value=noteText(p,v,blockers)+'\n'+significant.map(r=>'Day '+(r.day>0?'+':'')+r.day+': '+[r.drug,r.manage].filter(Boolean).join('; ')).join('\n');
     $('prePrintSurface').innerHTML=printHtml(p,v,true);
     $('prePrintSurface').classList.add('pre-draft');
   }
@@ -329,12 +336,16 @@
       else if(e.tagName==='SELECT')e.selectedIndex=0;
       else e.value='';
     });
-    $('preLmwhMgKg').value='1';mappedProcedure=false;$('preBleed').disabled=false;
+    $('preLmwhMgKg').value='1';mappedProcedure=false;$('preBleed').disabled=false;$('preOtherVerified').checked=false;$('preOtherReviewWrap').classList.add('hidden');
     rows=[];activePlan=null;confirmed=-1;revision++;
     $('prePrintSurface').innerHTML='';$('preOPDNote').value='';$('preCopyStatus').textContent='';
     resultScreen.classList.add('hidden');inputScreen.classList.remove('hidden');switchFields();
     root.scrollIntoView({behavior:'smooth',block:'start'});
   };
   $('preDrug').addEventListener('change',()=>{if(val('preDrug')==='apixaban'&&val('preIndication')==='mechanical')$('preIndication').value='';});
+  $('preIndication').addEventListener('change',()=>{if(val('preDrug')==='apixaban'&&val('preIndication')==='mechanical'){
+    alert('Mechanical heart valve ไม่รองรับ DOAC. กรุณาเลือก Warfarin หรือเปลี่ยน indication ตามข้อมูลจริง');
+    $('preIndication').value='';
+  }});
   switchFields();
 })();
