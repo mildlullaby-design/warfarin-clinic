@@ -395,3 +395,44 @@ test('Final readiness without checkboxes still honors high-risk clinical blocker
   const invalidDose=core.plan({...basis,lmwhMgPerDose:'-20'});
   assert.equal(invalidDose.canFinalize,false);
 });
+
+test('Day -1 therapeutic bridging and pre-op INR are separate lines with exact concise wording',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  const start=ui.indexOf('  function hasSafeLmwh('),end=ui.indexOf('  function plan(){',start);
+  assert.equal(start>=0&&end>start,true);
+  const makeRows=new Function('core','LABEL','dateAt','dailyFor','val','targetInr',
+    ui.slice(start,end)+'return makeRows;')(
+      core,{warfarin:'Warfarin',apixaban:'Apixaban'},
+      (d,n)=>core.thaiDate(core.shiftDate(d,n)),()=>null,
+      id=>id==='preTargetInr'?'2-3':'',()=>'2-3');
+  const p={anticoagulant:'warfarin',indication:'af',procedure:'Orbital surgery',bleedingRisk:'high',
+    operationDate:'2026-11-30',weeklyDose:'12',neuraxial:'no',
+    crCl:'65',weightKg:'50',bridgeChoice:'yes',lmwhMgPerDose:'50'};
+  const v=core.plan(p),r=makeRows(p,v).find(x=>x.day===-1);
+  assert.equal(r.manage,
+    'Hold enoxaparin at least 24 h before surgery\nCheck pre-op INR; keep <1.5 for elective major surgery');
+  const startRender=ui.indexOf('  function isMergedPostOp('),
+    endRender=ui.indexOf('  const printHtml=',startRender);
+  const rendered=new Function('esc',ui.slice(startRender,endRender)+'return printableRow;')(
+    s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'));
+  const printed=rendered(r,p);
+  assert.match(printed,/Hold enoxaparin at least 24 h before surgery<br>Check pre-op INR; keep &lt;1.5 for elective major surgery/);
+  // A neuraxial plan must retain the stricter, locally normalized INR target.
+  const neuro=makeRows({...p,neuraxial:'yes'},core.plan({...p,neuraxial:'yes'})).find(x=>x.day===-1);
+  assert.match(neuro.manage,/local laboratory normal range/);
+  assert.doesNotMatch(neuro.manage,/<1.5/);
+});
+test('INR / Bridging / Post-op notes are one 11pt print group with bold headings only',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  const css=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+  const a=ui.indexOf('  const printHtml='),b=ui.indexOf('  function renderPlan()',a);
+  const print=ui.slice(a,b);
+  assert.match(print,/<section class="pre-print-notes">/);
+  assert.match(print,/<strong>INR ก่อนผ่าตัด:<\/strong>/);
+  assert.match(print,/<strong>Bridging note:<\/strong>/);
+  assert.match(print,/<strong>Post-op actions:<\/strong>/);
+  assert.match(print,/adequate hemostasis, no active bleeding/);
+  assert.match(css,/#prePrintExport \.pre-print-notes \*/);
+  assert.match(css,/font-size:11pt!important/);
+  assert.match(css,/#prePrintExport \.pre-print-notes strong\{font-weight:700!important\}/);
+});
