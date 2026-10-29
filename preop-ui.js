@@ -447,19 +447,23 @@
           const current=Number.isFinite(dose)?(dose===0?'0 mg':dose+' mg'):((p.weeklyDose||'-')+' mg/week');
           drug=holding?'Hold Warfarin':'Warfarin '+current;
         } else {
-          drug=v.action==='continue'?'Continue Apixaban':(holding?'Hold Apixaban':'Apixaban '+(p.apixDose||'-')+' mg BID');
+          drug=holding?'Hold Apixaban':'Apixaban '+(p.apixDose||'-')+' mg BID';
         }
       }
       if(day===0){
         drug='PROCEDURE';
-        manage='ผ่าตัด / ประเมิน hemostasis ก่อน restart';
+        manage=p.anticoagulant==='apixaban'&&v.action==='continue'
+          ?'หัตถการ Minimal risk: Apixaban '+(p.apixDose||'-')+' mg BID อาจให้ต่อเนื่องได้ หรือพิจารณางดเฉพาะ dose เช้าในวันหัตถการตามแพทย์ผู้ทำหัตถการ'
+          :'ผ่าตัด / ประเมิน hemostasis ก่อน restart';
       }
       if(day>0){
         drug=p.anticoagulant==='warfarin'
           ?'Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
             ?dailyFor(day,p.operationDate)+' mg/day'
             :(p.weeklyDose||'-')+' mg/week')+' - conditional restart'
-          :'Post-op: treating team to confirm';
+          :(v.action==='continue'
+            ?'Apixaban '+(p.apixDose||'-')+' mg BID'
+            :'');
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===1)
           manage='Suggest restart Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
             ?dailyFor(day,p.operationDate)+' mg'
@@ -472,6 +476,11 @@
           manage='Alternative restart date if bleeding risk requires delay; surgical team confirms';
         if(p.anticoagulant==='apixaban'&&day===1&&p.bleedingRisk==='high')
           manage='Consider postoperative VTE prophylaxis if indicated (not therapeutic bridging); treating team decides';
+        if(p.anticoagulant==='apixaban'&&v.action==='hold'&&!manage){
+          // Keep maintenance dose visible on later days, but never imply an unconditional restart.
+          const plannedRestart=p.bleedingRisk==='high'?2:1;
+          if(day>plannedRestart)drug='Apixaban '+(p.apixDose||'-')+' mg BID (if restart confirmed)';
+        }
       }
       if(expectedLmwh){
         if(day===-3||day===-2){
@@ -538,10 +547,31 @@
     if(blockers.length)lines.push('รอทบทวน: '+blockers.join('; '));
     return lines.join('\n').replace(/[→↑↓≥≤]/g,' ');
   };
+  function isApixabanPostOp(p,r){
+    return p.anticoagulant==='apixaban' && r.day>0;
+  }
+  function editableRow(r,i,p){
+    const day='<td>'+r.day+'</td><td>'+esc(r.date)+'</td>';
+    if(isApixabanPostOp(p,r)){
+      const col=r.manage?'manage':'drug';
+      // One wide editable cell; the complete clinician-facing sentence is preserved.
+      return '<tr>'+day+'<td colspan="2" class="pre-merged-postop"><textarea data-row="'+i+'" data-col="'+col+'" rows="2">'+esc(r[col])+'</textarea></td></tr>';
+    }
+    return '<tr>'+day+
+      '<td><textarea data-row="'+i+'" data-col="drug" rows="2">'+esc(r.drug)+'</textarea></td>'+
+      '<td><textarea data-row="'+i+'" data-col="manage" rows="2">'+esc(r.manage)+'</textarea></td></tr>';
+  }
+  function printableRow(r,p){
+    const day='<td>'+r.day+'</td><td>'+esc(r.date)+'</td>';
+    if(isApixabanPostOp(p,r)){
+      return '<tr>'+day+'<td colspan="2" class="pre-merged-postop">'+esc(r.manage||r.drug)+'</td></tr>';
+    }
+    return '<tr>'+day+'<td>'+esc(r.drug)+'</td><td>'+esc(r.manage)+'</td></tr>';
+  }
   function buildTable(){
     $('preGrid').classList.remove('hidden');
     $('preGrid').innerHTML='<h3>Medication Calendar: Day -7 to +7 (แก้ข้อความในตารางได้)</h3><div class="pre-table-wrap"><table class="pre-edit-grid"><thead><tr><th>Day</th><th>Date (B.E.)</th><th>Anticoagulant</th><th>Management / Suggestion</th></tr></thead><tbody>'+
-      rows.map((r,i)=>'<tr><td>'+r.day+'</td><td>'+esc(r.date)+'</td><td><textarea data-row="'+i+'" data-col="drug" rows="2">'+esc(r.drug)+'</textarea></td><td><textarea data-row="'+i+'" data-col="manage" rows="2">'+esc(r.manage)+'</textarea></td></tr>').join('')+'</tbody></table></div>'+
+      rows.map((r,i)=>editableRow(r,i,activePlan.p)).join('')+'</tbody></table></div>'+
       (activePlan&&bridgeFootnote(activePlan.p,activePlan.v)?'<p class="pre-lmwh-footnote">'+esc(bridgeFootnote(activePlan.p,activePlan.v))+'</p>':'');
   }
   const printHtml=(p,v,blocked)=>{
@@ -555,7 +585,7 @@
       (p.anticoagulant==='warfarin'?' · Warfarin '+esc(p.weeklyDose)+' mg/wk · Target INR '+esc(targetInr()):' · Apixaban '+esc(p.apixDose)+' mg BID')+
       '</div>';
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>Date</th><th>Drug</th><th>Management / Suggestion</th></tr></thead><tbody>'+
-      rows.map(r=>'<tr><td>'+r.day+'</td><td>'+esc(r.date)+'</td><td>'+esc(r.drug)+'</td><td>'+esc(r.manage)+'</td></tr>').join('')+'</tbody></table>';
+      rows.map(r=>printableRow(r,p)).join('')+'</tbody></table>';
     const inrTarget=core.preopInrRequirement({anticoagulant:p.anticoagulant,action:v.action,neuraxial:p.neuraxial});
     const anestheticHandoff=p.neuraxial!=='no'
       ?'<p class="pre-print-note"><strong>ANESTHESIA HANDOFF:</strong> '+esc(p.neuraxial==='yes'
