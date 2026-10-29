@@ -312,8 +312,7 @@
       recentVTE:indication==='vte'&&recent?'yes':'no',severeThrombophilia:thromb?'yes':'no',
       priorPeriopClot:clot==='yes'?'yes':'no',
       bridgeChoice:val('preBridge'),
-      lmwhMgPerKg:val('preLmwhMgKg'),lmwhMgPerDose:val('preLmwhDose'),lastDoseDateTime:val('preLastApix'),renalHoldDays:val('preRenalHold'),
-      physicianConfirmed:false
+      lmwhMgPerKg:val('preLmwhMgKg'),lmwhMgPerDose:val('preLmwhDose'),lastDoseDateTime:val('preLastApix'),renalHoldDays:val('preRenalHold')
     };
   }
   function extraBlockers(p){
