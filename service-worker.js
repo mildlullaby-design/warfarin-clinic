@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '0.11.3-warfarin-calendar-a4';
+const APP_VERSION = '0.11.4-inr-bridging-print-copy';
 const CACHE_PREFIX = 'warfarin-dose-optimizer-';
 const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}`;
 const APP_SHELL = [
