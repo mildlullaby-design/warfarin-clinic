@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '0.9.16';
+const APP_VERSION = '0.10.0-preop';
 const CACHE_PREFIX = 'warfarin-dose-optimizer-';
 const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}`;
 const APP_SHELL = [
@@ -10,6 +10,8 @@ const APP_SHELL = [
   './pwa-update.js',
   './optimizer.js',
   './app.js',
+  './preop-core.js',
+  './preop-ui.js',
   './drug-interactions.js',
   './drug-interaction-clinical-review.js',
   './drug-interaction-final-review.js',
