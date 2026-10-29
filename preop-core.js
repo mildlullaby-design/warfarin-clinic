@@ -123,7 +123,7 @@
         sources.add(SOURCES.CHEST);sources.add(SOURCES.ESC);
         if (bleed==='high') restart='Therapeutic LMWH may restart 48–72 h post-op ONLY with adequate hemostasis and surgical-team confirmation.';
         else restart='Therapeutic LMWH may restart no earlier than 24 h post-op ONLY with adequate hemostasis and surgical-team confirmation.';
-        if (p.neuraxial==='yes') { sources.add(SOURCES.ASRA); warnings.push('ASRA: last therapeutic LMWH dose ≥24 h before neuraxial needle placement; verify exact times.'); }
+        if (p.neuraxial==='yes') { sources.add(SOURCES.ASRA); warnings.push('ASRA: last therapeutic LMWH dose ≥24 h before neuraxial needle placement; verify exact times.'); blockers.push('ASRA LMWH + neuraxial: exact last-injection and needle-placement times need anesthesia review before finalizing.'); }
         if (dose) {
           const doseText=dose.mg.toFixed(1)+' mg ('+dose.volume+' mL) SC q12h';
           for(let offset=-6;offset<=7;offset++) {
@@ -155,6 +155,7 @@
 
     if (drug==='apixaban' && indication!=='mechanical' && ['minimal','lowmod','high'].includes(bleed)) {
       sources.add(SOURCES.JAMA);sources.add(SOURCES.CHEST);
+      if (![2.5,5,10].includes(number(p.apixDose))) blockers.push('Select the pre-existing Apixaban dose; do not infer it.');
       if (!Number.isFinite(renal)||renal<=0) blockers.push('CrCl is required for Apixaban planning.');
       if (bleed==='minimal' && p.neuraxial!=='yes') { action='continue';holdDays=0; }
       else { action='hold';holdDays=bleed==='high'?2:bleed==='lowmod'?1:0; }
