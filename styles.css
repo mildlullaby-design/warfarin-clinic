@@ -948,3 +948,18 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
 }
 
 .preop-module .pre-safety.pre-blocking{border:2px solid #bd2536;border-radius:10px;padding:12px;background:#fff2f2;color:#8a1f2e;margin:10px 0}
+
+
+/* Guideline reminders directly adjacent to review/bridging checkboxes */
+.preop-module .pre-guideline-summary {
+  padding:10px 12px;margin:12px 0;
+  border:1px solid #b7cadd;border-left:4px solid #426b98;
+  border-radius:8px;background:#f7faff;color:var(--ink);
+  font-size:.87rem;line-height:1.5;
+}
+.preop-module .pre-guideline-summary strong {display:block;margin-bottom:5px}
+.preop-module .pre-guideline-summary p {margin:4px 0 7px}
+.preop-module .pre-guideline-summary a {font-size:.81rem}
+.preop-module .pre-guideline-summary .check {display:flex;align-items:flex-start;gap:8px;padding:9px 2px}
+.preop-module #preTargetInrCustomWrap {margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.preop-module #preTargetInrCustomWrap.hidden {display:none!important}
