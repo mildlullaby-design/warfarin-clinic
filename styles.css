@@ -963,3 +963,7 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
 .preop-module .pre-guideline-summary .check {display:flex;align-items:flex-start;gap:8px;padding:9px 2px}
 .preop-module #preTargetInrCustomWrap {margin-top:6px;display:flex;flex-direction:column;gap:4px}
 .preop-module #preTargetInrCustomWrap.hidden {display:none!important}
+
+.preop-module #preAsraReview{grid-column:1/-1}
+.preop-module .pre-clinical-reminders{margin-top:12px;padding:9px 12px;border:1px solid #e6d4a4;border-radius:8px;background:#fffbf1;color:#755200}
+.preop-module .pre-clinical-reminders h3{margin:2px 0 6px}
