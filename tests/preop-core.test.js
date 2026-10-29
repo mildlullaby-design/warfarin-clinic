@@ -238,3 +238,40 @@ test('Warfarin calendar gives short restart-relative INR follow-up with no old c
   assert.doesNotMatch(ui,/Suggested INR check \(4 วันหลัง planned restart Day \+1\)/);
   assert.doesNotMatch(ui,/ทีมวิสัญญียืนยันก่อน needle placement \(INR/);
 });
+
+
+test('Apixaban minimal-risk calendar names the current dose before and after surgery',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  const start=ui.indexOf('  function hasSafeLmwh('),end=ui.indexOf('  function plan(){',start);
+  assert.equal(start>=0 && end>start,true);
+  const makeRows=new Function('core','LABEL','dateAt','dailyFor','val','targetInr',
+    ui.slice(start,end)+'return makeRows;')(
+      core,{warfarin:'Warfarin',apixaban:'Apixaban'},()=>'',()=>null,
+      id=>id==='preApixDose'?'5':'',()=>''
+    );
+  const p={anticoagulant:'apixaban',indication:'af',procedure:'Cataract surgery',
+    bleedingRisk:'minimal',operationDate:'2026-11-30',apixDose:'5',crCl:'70',neuraxial:'no'};
+  const rows=makeRows(p,core.plan(p));
+  assert.equal(rows.length,15);
+  assert.equal(rows.find(r=>r.day===-1).drug,'Apixaban 5 mg BID');
+  assert.equal(rows.find(r=>r.day===1).drug,'Apixaban 5 mg BID');
+  assert.match(rows.find(r=>r.day===0).manage,/อาจให้ต่อเนื่องได้/);
+  assert.doesNotMatch(rows.map(r=>r.drug).join(' '),/Post-op: treating team to confirm|Continue Apixaban/);
+});
+test('Apixaban postoperative dates are merged on screen and in print with complete original sentences',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  const a=ui.indexOf('  function isApixabanPostOp('),b=ui.indexOf('  const printHtml=',a);
+  assert.equal(a>=0 && b>a,true);
+  const renderer=new Function('esc',ui.slice(a,b)+'return {editableRow,printableRow};')(
+    s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  );
+  const p={anticoagulant:'apixaban'};
+  const r={day:2,date:'02/12/2569',drug:'',manage:'Suggest restart Apixaban 5 mg BID if stable/no bleeding/hemostasis adequate and physician approves'};
+  const edit=renderer.editableRow(r,9,p),printed=renderer.printableRow(r,p);
+  assert.match(edit,/colspan="2"/);
+  assert.match(edit,/data-col="manage"/);
+  assert.match(printed,/colspan="2"/);
+  assert.match(printed,/if stable\/no bleeding\/hemostasis adequate and physician approves/);
+  assert.doesNotMatch(printed,/Post-op: treating team to confirm/);
+  assert.match(ui,/if restart confirmed/);
+});
