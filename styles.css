@@ -887,3 +887,29 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
 .preop-module .pre-daily-grid label{display:flex;flex-direction:column;gap:4px;text-align:center;font-size:.85rem}
 .preop-module .pre-daily-grid input{width:100%;min-width:0;padding:7px 3px;text-align:center}
 @media(max-width:620px){.preop-module .pre-daily-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+
+/* Pre-op inline ISTH quick-reference and guideline advice */
+.preop-module .pre-risk-inline{
+  grid-column:1/-1; padding:12px; border:1px solid var(--line-strong);
+  border-radius:10px; background:#fafcfe; margin:4px 0 10px;
+}
+.preop-module .pre-risk-inline-head{
+  display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+}
+.preop-module .pre-risk-inline-head a{font-size:.84rem}
+.preop-module .pre-risk-inline-filters{
+  display:grid;grid-template-columns:minmax(0,2fr) minmax(120px,1fr);gap:8px;margin:10px 0;
+}
+.preop-module .pre-risk-scroll{max-height:350px;overflow-y:auto;border:1px solid var(--line);border-radius:7px;background:white}
+.preop-module .pre-risk-scroll thead{position:sticky;top:0;background:#eff3f8;z-index:1}
+.preop-module .pre-risk-scroll td,.preop-module .pre-risk-scroll th{padding:7px;font-size:.82rem;text-align:left}
+.preop-module .pre-risk-scroll button{text-align:left;font-size:.8rem;padding:3px 7px;border:0;background:transparent;color:var(--primary-dark);text-decoration:underline}
+.preop-module .pre-guideline-advice,.preop-module .pre-lmwh-footnote{
+  padding:10px 12px;border:1px solid #ead9b0;border-radius:8px;background:#fffbef;margin:12px 0;
+}
+.preop-module .pre-lmwh-dose{margin-top:10px}
+.preop-module #preLmwhVolume{font-size:1.04rem;line-height:1.4}
+.preop-module .pre-risk-inline small{display:block;margin-top:7px}
+.pre-print-sheet .pre-print-note{font-size:9px;line-height:1.3}
+@media(max-width:640px){.preop-module .pre-risk-inline-filters{grid-template-columns:1fr}}
