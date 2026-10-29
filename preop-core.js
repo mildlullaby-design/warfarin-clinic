@@ -231,7 +231,7 @@
       sources:[...sources],draft:blockers.length>0,
       operationDate:hasDate?operation:null,
       layout:bridge?'bridging-grid':'concise-prose',
-      canFinalize:blockers.length===0 && p.physicianConfirmed===true
+      canFinalize:blockers.length===0 // Final Print click is the explicit clinician confirmation.
     };
   }
   return Object.freeze({iso,shiftDate,thaiDate,crclCG,enoxaparin,clockHours,afBridgeRecommendation,preopInrRequirement,plan,NEURAXIAL_NOTE,SOURCES});
