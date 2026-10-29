@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '0.11.4-inr-bridging-print-copy';
+const APP_VERSION = '0.11.5-a4-print-14pt';
 const CACHE_PREFIX = 'warfarin-dose-optimizer-';
 const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}`;
 const APP_SHELL = [
