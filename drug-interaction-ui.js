@@ -17,6 +17,7 @@
   function showModule(name) {
     $('doseModule').classList.toggle('hidden', name !== 'dose');
     $('drugInteractions').classList.toggle('hidden', name !== 'interactions');
+    $('preopModule').classList.toggle('hidden', name !== 'preop');
     document.querySelectorAll('[data-module-view]').forEach(b => { const selected = b.dataset.moduleView === name;
       b.classList.toggle('selected', selected); b.setAttribute('aria-pressed', String(selected)); });
   }
