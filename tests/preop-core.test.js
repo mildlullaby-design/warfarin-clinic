@@ -175,13 +175,13 @@ test('Calendar removes usual-dose parentheses and has short Day+5 INR text',()=>
   assert.match(ui,/Stop LMWH only once INR therapeutic/);
   assert.doesNotMatch(ui,/ทีมวิสัญญียืนยันก่อน needle placement \(INR/);
 });
-test('Neuraxial Yes uses explicit ASRA review, Unknown remains unresolved',()=>{
+test('Clinic can finalize medication review without anesthesia ASRA checkbox',()=>{
   const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
   const coreText=fs.readFileSync(path.join(root,'preop-core.js'),'utf8');
-  assert.match(ui,/preAsraConfirmed/);
-  assert.match(ui,/p.neuraxial==='unknown'/);
-  assert.match(ui,/p.neuraxial==='yes'&&!checked\('preAsraConfirmed'\)/);
-  assert.match(coreText,/p.neuraxialConfirmed!==true/);
+  assert.doesNotMatch(ui,/preAsraConfirmed/);
+  assert.doesNotMatch(coreText,/neuraxialConfirmed/);
+  assert.match(ui,/ส่งต่อวิสัญญี/);
+  assert.match(ui,/anestheticHandoff/);
 });
 test('Clinical review and bridge checkboxes include indication-specific primary guidelines',()=>{
   const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
@@ -193,24 +193,43 @@ test('Clinical review and bridge checkboxes include indication-specific primary 
 });
 
 
-test('Neuraxial therapeutic LMWH bridge blocks only until separate ASRA review is confirmed',()=>{
-  const base={
+test('Neuraxial LMWH bridge remains a clinic Final plan with anesthesia handoff',()=>{
+  const p=core.plan({
     anticoagulant:'warfarin',indication:'af',procedure:'Total knee arthroplasty',
     bleedingRisk:'high',operationDate:'2026-11-30',crCl:'70',weightKg:'65',
     weeklyDose:'21',bridgeChoice:'yes',bridgeConfirmed:true,lmwhMgPerDose:'65',
     neuraxial:'yes',riskReviewed:true
-  };
-  const pending=core.plan({...base,neuraxialConfirmed:false});
-  const verified=core.plan({...base,neuraxialConfirmed:true});
-  assert.match(pending.blockers.join(' '),/ASRA LMWH/);
-  assert.doesNotMatch(verified.blockers.join(' '),/ASRA LMWH/);
+  });
+  assert.doesNotMatch(p.blockers.join(' '),/ASRA LMWH/);
+  assert.match(p.warnings.join(' '),/Handoff to anesthesia/);
 });
-test('Neuraxial selection Yes requires signoff; No has no ASRA-specific review field',()=>{
+test('Neuraxial unknown is a handoff note, not a blocking clinical signoff',()=>{
   const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
-  assert.match(ui,/p.neuraxial==='unknown'/);
-  assert.match(ui,/p.neuraxial==='yes'&&!checked\('preAsraConfirmed'\)/);
-  assert.match(ui,/preAsraConfirmed/);
+  assert.doesNotMatch(ui,/Neuraxial ASRA review: กรุณายืนยัน/);
+  assert.match(ui,/Anesthesia technique not established/);
   assert.match(ui,/Clinical reminders \(ไม่ใช่ช่องที่กรอกค้าง\)/);
+});
+test('Apixaban 2.5mg with planned neuraxial does not auto-continue minimal-risk surgery',()=>{
+  const p=core.plan({anticoagulant:'apixaban',indication:'af',procedure:'Minor procedure',
+    bleedingRisk:'minimal',operationDate:'2026-11-30',crCl:'65',apixDose:'2.5',neuraxial:'yes'});
+  assert.equal(p.action,'hold');
+  assert.equal(p.holdDays,3);
+  assert.doesNotMatch(p.blockers.join(' '),/ASRA Apixaban dose category/);
+  assert.match(p.warnings.join(' '),/anesthesiologist/);
+});
+test('Insufficient known high-dose apixaban interval emits a printed anesthesia alert',()=>{
+  const p=core.plan({anticoagulant:'apixaban',indication:'af',procedure:'Major surgery',
+    bleedingRisk:'high',operationDate:'2026-11-30',operationTime:'08:00',
+    lastDoseDateTime:'2026-11-28T20:00',crCl:'65',apixDose:'5',neuraxial:'yes'});
+  assert.match(p.warnings.join(' '),/ANESTHESIA ALERT/);
+  assert.doesNotMatch(p.blockers.join(' '),/ASRA high-dose Apixaban/);
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  assert.match(ui,/anesthesiaAlerts\.map/);
+});
+test('Anesthesia risk does not silently rewrite procedural bleeding risk',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  assert.match(ui,/bleedingRisk:val\('preBleed'\)/);
+  assert.doesNotMatch(ui,/bleedingRisk:val\('preNeuraxial'\)==='yes'\?'high'/);
 });
 test('Warfarin calendar gives short restart-relative INR follow-up with no old conditional string',()=>{
   const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
