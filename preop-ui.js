@@ -354,7 +354,7 @@
         }
         if(day===-1){
           manage=eligibleLmwh
-            ?doseText+' LAST therapeutic dose Day -1 AM ONLY (at least 24 h before procedure); OMIT PM dose. Verify injection/procedure times'
+            ? 'Hold enoxaparin at least 24 h before surgery'
             :'Bridging requires physician plan: do not administer LMWH pending review';
         }
         if(day>0&&(day===1||day===2||day===3)){
