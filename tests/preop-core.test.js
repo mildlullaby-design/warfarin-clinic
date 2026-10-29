@@ -103,3 +103,18 @@ test('procedure reference is visible inline and supports group filter',()=>{
   assert.match(ui,/preRiskGroup/);
   assert.match(ui,/Endoscopic polypectomy >=1 cm/);
 });
+
+test('surgical INR threshold remains below 1.5',()=>{
+ const t=core.preopInrRequirement({anticoagulant:'warfarin',action:'hold',neuraxial:'no'});
+ assert.equal(t.threshold,1.5);
+ assert.equal(t.label,'INR <1.5');
+});
+test('neuraxial INR must normalize to local laboratory range',()=>{
+ const t=core.preopInrRequirement({anticoagulant:'warfarin',action:'hold',neuraxial:'yes'});
+ assert.equal(t.kind,'neuraxial');
+ assert.equal(t.threshold,null);
+});
+test('no INR threshold when warfarin is continued or for apixaban',()=>{
+ assert.equal(core.preopInrRequirement({anticoagulant:'warfarin',action:'continue'}),null);
+ assert.equal(core.preopInrRequirement({anticoagulant:'apixaban',action:'hold'}),null);
+});
