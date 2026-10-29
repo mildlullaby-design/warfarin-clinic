@@ -58,6 +58,19 @@
     return (iso(opDate).getTime()-iso(lastDay).getTime())/3600000+(oh+om/60)-(lh+lm/60);
   }
   const NEURAXIAL_NOTE = 'If spinal/epidural anesthesia or deep plexus block is planned, anesthesia team must verify anticoagulant interruption, normalized INR (Warfarin), LMWH timing (if applicable), and safe restart/catheter precautions per ASRA 2025.';
+  // AF: CHEST 2022 strongly recommends against routine perioperative heparin bridging.
+  // Recent embolism or thrombosis during interruption warrants individualized review,
+  // NOT automatic therapeutic LMWH.
+  function afBridgeRecommendation({recentStroke='',priorPeriopClot=''}={}) {
+    const exceptional=recentStroke==='yes'||priorPeriopClot==='yes';
+    return Object.freeze({
+      recommendation:exceptional?'individual-review':'against-routine-bridging',
+      reason:exceptional
+        ? 'CHEST 2022 recommends against routine AF bridging; recent stroke/embolism or thrombosis during interruption warrants individualized multidisciplinary review.'
+        : 'CHEST 2022: recommend against routine heparin bridging in AF (strong recommendation).',
+      source:'CHEST 2022'
+    });
+  }
   function plan(input={}) {
     const p={...input}, blockers=[],warnings=[],instructions=[],sources=new Set(),days=[];
     const drug=p.anticoagulant, indication=p.indication, bleed=p.bleedingRisk, operation=p.operationDate||'';
@@ -114,11 +127,16 @@
         if (p.bridgeConfirmed!==true) blockers.push('Physician must explicitly confirm therapeutic bridging.');
         if (!Number.isFinite(renal)||renal<=0) blockers.push('CrCl required for LMWH bridging.');
         else if (renal<30) blockers.push('CrCl <30: no automatic therapeutic enoxaparin order; physician-directed alternative required.');
-        dose=enoxaparin(p.weightKg,p.lmwhMgPerKg || 1);
+        // Prescriber can override the calculated mg/dose on the input screen.
+        // Do not coerce a blank or invalid override into an automatic dose.
+        const enteredDose=number(p.lmwhMgPerDose);
+        if(p.lmwhMgPerDose!==undefined && p.lmwhMgPerDose!==null && p.lmwhMgPerDose!=='') {
+          dose=Number.isFinite(enteredDose)&&enteredDose>0?enoxaparin(enteredDose,1):null;
+        } else dose=enoxaparin(p.weightKg,p.lmwhMgPerKg || 1);
         if (!dose) blockers.push('Body weight and LMWH dose (mg/kg) required for bridging.');
         if (dose?.needsPrecisionReview) warnings.push('Enoxaparin volume requires preparation precision review; displayed volume does not change prescribed mg.');
         if (dose?.multiAmpoule) warnings.push('More than one single-use 60 mg/0.6 mL ampoule per dose; verify pharmacy preparation.');
-        warnings.push('Start therapeutic LMWH ONLY when INR falls below therapeutic range; exact first day is not predicted.');
+        warnings.push('Pre-op LMWH initiation: obtain INR at clinically selected pre-bridge assessment and begin only when subtherapeutic; do not order daily INR by default.');
         warnings.push('Last pre-op therapeutic LMWH dose approximately 24 h before procedure; verify actual clock time.');
         sources.add(SOURCES.CHEST);sources.add(SOURCES.ESC);
         if (bleed==='high') restart='Therapeutic LMWH may restart 48–72 h post-op ONLY with adequate hemostasis and surgical-team confirmation.';
@@ -131,8 +149,8 @@
             if (offset===0) {anticoagulant='Hold Warfarin / LMWH';management='Operation; hemostasis and anesthesia team assessment';}
             else if(offset<0){
               anticoagulant=offset <= -(holdDays||5)-1?'Warfarin usual regimen':'Hold Warfarin';
-              if(offset>=-5 && offset<=-2) management='LMWH '+doseText+' ONLY when INR subtherapeutic and start confirmed';
-              if(offset===-1)management='Last therapeutic LMWH ≈24 h pre-op; verify clock time and INR';
+              if(offset===-3||offset===-2) management='LMWH '+doseText+' per confirmed bridge plan';
+              if(offset===-1)management='Last LMWH dose in AM only; omit PM dose. Confirm last dose approximately 24 h before procedure.';
             } else {
               anticoagulant='Warfarin: conditional restart at usual maintenance regimen';
               if(bleed==='high' && offset<2)management='No therapeutic LMWH restart; assess hemostasis';
@@ -199,5 +217,5 @@
       canFinalize:blockers.length===0 && p.physicianConfirmed===true
     };
   }
-  return Object.freeze({iso,shiftDate,thaiDate,crclCG,enoxaparin,clockHours,plan,NEURAXIAL_NOTE,SOURCES});
+  return Object.freeze({iso,shiftDate,thaiDate,crclCG,enoxaparin,clockHours,afBridgeRecommendation,plan,NEURAXIAL_NOTE,SOURCES});
 });
