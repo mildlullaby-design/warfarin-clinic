@@ -326,14 +326,14 @@ test('A4 uses dedicated export, Sarabun 14pt, Cr/BW/CrCl and right-aligned signa
   assert.match(css,/pre-signature-block\{/);
   assert.match(css,/margin-left:auto/);
 });
-test('A4 Bridging note shows one Start Enoxaparin bullet without duplicate title or anesthesia note',()=>{
+test('A4 Bridging note places Start Enoxaparin on same line with heading',()=>{
   const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
   const start=ui.indexOf('  const printHtml=');
   const end=ui.indexOf('  function renderPlan()',start);
   const print=ui.slice(start,end);
   assert.match(ui,/return 'Bridging note: Start Enoxaparin/);
-  assert.match(print,/pre-bridging-print/);
-  assert.match(print,/<ul><li>/);
+  assert.match(print,/pre-bridging-inline/);
+  assert.doesNotMatch(print,/<ul><li>/);
   assert.match(print,/replace\(\/\^Bridging note:\\s\*\/i/);
   assert.doesNotMatch(print,/anestheticHandoff/);
   assert.doesNotMatch(print,/ANESTHESIA HANDOFF:/);
@@ -435,4 +435,11 @@ test('INR / Bridging / Post-op notes are one 11pt print group with bold headings
   assert.match(css,/#prePrintExport \.pre-print-notes \*/);
   assert.match(css,/font-size:11pt!important/);
   assert.match(css,/#prePrintExport \.pre-print-notes strong\{font-weight:700!important\}/);
+});
+
+test('Copy OPD note continues to be generated from the source plan without changing copy text in this wording-only revision',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  assert.match(ui,/const noteText=\(p,v,blockers\)=>/);
+  assert.match(ui,/const significant=rows\.filter/);
+  assert.match(ui,/preOPDNote'\)\.value=noteText/);
 });
