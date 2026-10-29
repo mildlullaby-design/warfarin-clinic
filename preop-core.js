@@ -71,6 +71,21 @@
       source:'CHEST 2022'
     });
   }
+  // A surgical INR threshold cannot substitute for a neuraxial needle-placement requirement.
+  // For elective major surgery that requires Warfarin interruption, the commonly
+  // recommended target is INR <1.5; procedural/anesthesia protocols may be stricter.
+  function preopInrRequirement({anticoagulant='',action='',neuraxial='no'}={}) {
+    if(anticoagulant!=='warfarin'||action!=='hold')return null;
+    if(neuraxial==='yes')return Object.freeze({
+      kind:'neuraxial',label:'INR normalized to local laboratory reference range',
+      threshold:null,
+      advice:'ASRA 2025: normalized INR before needle placement. INR <1.5 alone does NOT establish neuraxial safety.'
+    });
+    return Object.freeze({
+      kind:'surgery',label:'INR <1.5',threshold:1.5,
+      advice:'For elective surgery requiring Warfarin interruption, aim INR <1.5; confirm procedure-specific threshold with surgical team. If INR >=1.5, contact treating surgeon/anesthetist before surgery.'
+    });
+  }
   function plan(input={}) {
     const p={...input}, blockers=[],warnings=[],instructions=[],sources=new Set(),days=[];
     const drug=p.anticoagulant, indication=p.indication, bleed=p.bleedingRisk, operation=p.operationDate||'';
@@ -217,5 +232,5 @@
       canFinalize:blockers.length===0 && p.physicianConfirmed===true
     };
   }
-  return Object.freeze({iso,shiftDate,thaiDate,crclCG,enoxaparin,clockHours,afBridgeRecommendation,plan,NEURAXIAL_NOTE,SOURCES});
+  return Object.freeze({iso,shiftDate,thaiDate,crclCG,enoxaparin,clockHours,afBridgeRecommendation,preopInrRequirement,plan,NEURAXIAL_NOTE,SOURCES});
 });
