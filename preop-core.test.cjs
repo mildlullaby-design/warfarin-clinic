@@ -41,3 +41,6 @@ test('C21 unclassified procedure risk blocks final',()=>assert.ok(p({bleedingRis
 test('C22 unknown anesthesia uses note, not ASRA-72 automatic',()=>{const a=C.plan({...ap,bleedingRisk:'high',neuraxial:'unknown'});assert.equal(a.holdDays,2);assert.ok(a.warnings.join(' ').includes('ASRA'));});
 test('no dose calculation on invalid weight',()=>assert.equal(C.enoxaparin('',1),null));
 test('clock hour calculation includes dates and minutes',()=>assert.equal(C.clockHours('2026-11-09T08:00','2026-11-12','08:00'),72));
+
+test('Apixaban dose missing never finalizes',()=>assert.ok(C.plan({...ap,apixDose:'',bleedingRisk:'high'}).blockers.length>0));
+test('Known neuraxial + LMWH bridging cannot claim verified timing without timestamps',()=>assert.ok(p({indication:'mechanical',bleedingRisk:'high',bridgeChoice:'yes',bridgeConfirmed:true,riskReviewed:true,crCl:65,weightKg:53,neuraxial:'yes'}).blockers.some(x=>x.includes('ASRA LMWH'))));
