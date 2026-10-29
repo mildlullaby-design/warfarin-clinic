@@ -459,8 +459,8 @@
       if(day>0){
         drug=p.anticoagulant==='warfarin'
           ?'Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
-            ?dailyFor(day,p.operationDate)+' mg/day'
-            :(p.weeklyDose||'-')+' mg/week')+' - conditional restart'
+            ?dailyFor(day,p.operationDate)+' mg'
+            :(p.weeklyDose||'-')+' mg/week')+(v.action==='hold'&&day>1?' (if restart confirmed)':'')
           :(v.action==='continue'
             ?'Apixaban '+(p.apixDose||'-')+' mg BID'
             :'');
@@ -484,7 +484,7 @@
       }
       if(expectedLmwh){
         if(day===-3||day===-2){
-          manage=eligibleLmwh?doseText+' q12h (planned bridging schedule)':'Bridging selected: dose/renal/confirmation pending - NO LMWH ORDER';
+          manage=eligibleLmwh?doseText+' q12h':'Bridging selected: dose/renal/confirmation pending - NO LMWH ORDER';
         }
         if(day===-1){
           manage=eligibleLmwh
@@ -547,12 +547,13 @@
     if(blockers.length)lines.push('รอทบทวน: '+blockers.join('; '));
     return lines.join('\n').replace(/[→↑↓≥≤]/g,' ');
   };
-  function isApixabanPostOp(p,r){
-    return p.anticoagulant==='apixaban' && r.day>0;
+  function isMergedPostOp(p,r){
+    // Post-op Warfarin and Apixaban use one full-width instruction cell.
+    return (p.anticoagulant==='apixaban'||p.anticoagulant==='warfarin') && r.day>0;
   }
   function editableRow(r,i,p){
     const day='<td>'+r.day+'</td><td>'+esc(r.date)+'</td>';
-    if(isApixabanPostOp(p,r)){
+    if(isMergedPostOp(p,r)){
       const col=r.manage?'manage':'drug';
       // One wide editable cell; the complete clinician-facing sentence is preserved.
       return '<tr>'+day+'<td colspan="2" class="pre-merged-postop"><textarea data-row="'+i+'" data-col="'+col+'" rows="2">'+esc(r[col])+'</textarea></td></tr>';
@@ -563,7 +564,7 @@
   }
   function printableRow(r,p){
     const day='<td>'+r.day+'</td><td>'+esc(r.date)+'</td>';
-    if(isApixabanPostOp(p,r)){
+    if(isMergedPostOp(p,r)){
       return '<tr>'+day+'<td colspan="2" class="pre-merged-postop">'+esc(r.manage||r.drug)+'</td></tr>';
     }
     return '<tr>'+day+'<td>'+esc(r.drug)+'</td><td>'+esc(r.manage)+'</td></tr>';
