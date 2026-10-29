@@ -309,7 +309,7 @@ test('Warfarin post-op rows use one editable merged cell with the full clinical 
   assert.match(inr,/Suggested INR check 4 วันหลัง restart Warfarin/);
   assert.match(inr,/Stop LMWH only once INR therapeutic/);
 });
-test('A4 uses larger margins, Sarabun 16 pt, renal inputs, and right-aligned signed name/date',()=>{
+test('A4 uses dedicated export, Sarabun 14pt, Cr/BW/CrCl and right-aligned signature',()=>{
   const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
   const css=fs.readFileSync(path.join(root,'styles.css'),'utf8');
   assert.match(ui,/ · Cr: /);
@@ -320,9 +320,9 @@ test('A4 uses larger margins, Sarabun 16 pt, renal inputs, and right-aligned sig
   assert.match(ui,/pre-signature-line/);
   assert.match(ui,/pre-signature-name/);
   assert.match(ui,/pre-signature-date/);
-  assert.match(css,/@page\{size:A4 portrait;margin:20mm\}/);
-  assert.match(css,/#prePrintSurface,\#prePrintSurface \*\{/);
-  assert.match(css,/font-size:16pt!important/);
+  assert.match(css,/@page\{size:A4 portrait;margin:18mm 17mm\}/);
+  assert.match(css,/body>#prePrintExport/);
+  assert.match(css,/font-size:14pt!important/);
   assert.match(css,/pre-signature-block\{/);
   assert.match(css,/margin-left:auto/);
 });
@@ -354,4 +354,44 @@ test('A4 INR label is short and separate from the normal-range neuraxial target'
   const neuro=core.preopInrRequirement({anticoagulant:'warfarin',action:'hold',neuraxial:'yes'});
   assert.equal(ordinary.kind,'surgery');
   assert.equal(neuro.kind,'neuraxial');
+});
+
+test('Chrome printing isolates root A4 export to prevent hidden app content from creating blank pages',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  const css=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+  assert.match(ui,/printHost\.id='prePrintExport'/);
+  assert.match(ui,/document\.body\.append\(printHost\)/);
+  assert.match(ui,/printHost\.innerHTML=html/);
+  assert.match(ui,/window\.print\(\)/);
+  assert.match(css,/body>\.wrap\{display:none!important\}/);
+  assert.match(css,/body>#prePrintExport\{/);
+  assert.match(css,/#prePrintExport\{display:none!important\}/);
+  assert.match(css,/@page\{size:A4 portrait;margin:18mm 17mm\}/);
+});
+test('All redundant review checkboxes are removed while Final Print remains an explicit action',()=>{
+  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  const logic=fs.readFileSync(path.join(root,'preop-core.js'),'utf8');
+  for(const id of ['preRiskV2Confirm','preBridgeConfirmed','preConfirm']){
+    assert.doesNotMatch(html,new RegExp(id));
+    assert.doesNotMatch(ui,new RegExp(id));
+  }
+  assert.doesNotMatch(logic,/p\.riskReviewed|p\.bridgeConfirmed|p\.physicianConfirmed/);
+  assert.match(ui,/Confirm & Print Final A4/);
+  assert.match(ui,/if\(!activePlan \|\| activePlan\.blockers\.length\)return/);
+});
+test('Final readiness without checkboxes still honors high-risk clinical blockers',()=>{
+  const basis={
+    anticoagulant:'warfarin',indication:'af',procedure:'Orbital surgery',
+    bleedingRisk:'high',operationDate:'2026-11-30',crCl:'60',weightKg:'60',
+    weeklyDose:'21',neuraxial:'no',bridgeChoice:'yes',lmwhMgPerDose:'60'
+  };
+  const valid=core.plan(basis);
+  assert.equal(valid.canFinalize,true);
+  assert.equal(valid.bridging,true);
+  const renal=core.plan({...basis,crCl:'20'});
+  assert.match(renal.blockers.join(' '),/CrCl <30/);
+  assert.equal(renal.canFinalize,false);
+  const invalidDose=core.plan({...basis,lmwhMgPerDose:'-20'});
+  assert.equal(invalidDose.canFinalize,false);
 });
