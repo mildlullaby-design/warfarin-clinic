@@ -139,7 +139,6 @@
       if (specialRisk && indication!=='mechanical') warnings.push('Exceptional perioperative thrombotic risk: individual physician review; do not assume routine no-bridging.');
       if (p.bridgeChoice==='yes' && action==='hold') {
         bridge=true;
-        if (p.bridgeConfirmed!==true) blockers.push('Physician must explicitly confirm therapeutic bridging.');
         if (!Number.isFinite(renal)||renal<=0) blockers.push('CrCl required for LMWH bridging.');
         else if (renal<30) blockers.push('CrCl <30: no automatic therapeutic enoxaparin order; physician-directed alternative required.');
         // Prescriber can override the calculated mg/dose on the input screen.
@@ -182,8 +181,8 @@
         if (p.bridgeChoice==='yes' && action!=='hold') blockers.push('Bridging cannot be scheduled unless Warfarin interruption is planned.');
         instructions.push('No therapeutic LMWH bridging selected.');
       }
-      if (specialRisk && p.riskReviewed!==true) blockers.push('Exceptional thrombotic risk requires explicit physician review.');
-      if (indication==='mechanical' && bleed==='high' && p.riskReviewed!==true) blockers.push('Mechanical-valve thrombotic risk/bridging decision requires physician review.');
+      if (specialRisk) warnings.push('Exceptional thrombotic risk: review patient-specific anticoagulant interruption and bridging strategy before printing.');
+      if (indication==='mechanical' && bleed==='high') warnings.push('Mechanical valve + high-bleeding-risk procedure: verify individualized interruption and bridging decision.');
     }
 
     if (drug==='apixaban' && indication!=='mechanical' && ['minimal','lowmod','high'].includes(bleed)) {
@@ -194,7 +193,7 @@
       else { action='hold';holdDays=bleed==='high'?2:bleed==='lowmod'?1:0; }
       if (Number.isFinite(renal)&&renal<30 && action==='hold') {
         warnings.push('CrCl <30: physician-reviewed extended interruption may be necessary; expert-opinion timing.');
-        if(!Number.isInteger(number(p.renalHoldDays)) || number(p.renalHoldDays)<3 || number(p.renalHoldDays)>4 || p.riskReviewed!==true) {
+        if(!Number.isInteger(number(p.renalHoldDays)) || number(p.renalHoldDays)<3 || number(p.renalHoldDays)>4) {
           blockers.push('Severe renal impairment: physician must confirm 3–4-day hold or alternative plan.');
         } else holdDays=Math.max(holdDays,number(p.renalHoldDays));
       }
