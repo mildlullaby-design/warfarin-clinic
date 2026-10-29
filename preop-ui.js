@@ -100,14 +100,11 @@
   asraReview.id='preAsraReview';asraReview.className='pre-guideline-summary hidden';
   asraReview.innerHTML='<strong>Neuraxial / deep plexus — ASRA 2025</strong>'+
     '<p>Warfarin: hold 5 days และ INR normalized (local lab) ก่อน needle placement. Therapeutic LMWH: last dose ≥24 h. Apixaban: high-dose ≥72 h, low-dose ≥36 h (ต้องแยก dose category ตาม indication/renal function). ตรวจ catheter timing เพิ่มเติม.</p>'+
-    '<label class="check"><input id="preAsraConfirmed" type="checkbox"> ยืนยันว่าได้ทบทวน INR / last dose / catheter timing ร่วมกับทีมวิสัญญีแล้ว</label>'+
+    '<p><strong>ส่งต่อวิสัญญี:</strong> ตรวจ exact last dose, INR (ถ้า Warfarin), neuraxial interval และ catheter plan ก่อนทำ block โดยทีมวิสัญญี ไม่มีช่องติ๊กยืนยันใน Warfarin Clinic</p>'+
     '<a href="https://rapm.bmj.com/content/early/2025/09/16/rapm-2024-105766" target="_blank" rel="noopener noreferrer">ASRA 2025</a>';
   $('preNeuraxial').closest('.field').insertAdjacentElement('afterend',asraReview);
   const showAsra=()=>asraReview.classList.toggle('hidden',val('preNeuraxial')!=='yes');
-  $('preNeuraxial').addEventListener('change',()=>{
-    if(val('preNeuraxial')!=='yes')$('preAsraConfirmed').checked=false;
-    showAsra();
-  });
+  $('preNeuraxial').addEventListener('change',showAsra);
   showAsra();
   inputScreen.querySelector('.pre-actions')?.insertAdjacentHTML('beforeend','<span class="muted">สร้าง Draft ก่อน แล้วตรวจและยืนยันบนหน้าถัดไป</span>');
 
@@ -293,7 +290,7 @@
     const thromb=indication==='vte'?[ 'aps','severe' ].includes(val('preVTEThromb')):vf.includes('hyper');
     return {
       anticoagulant:val('preDrug'),indication,procedure:val('preProcedure'),
-      bleedingRisk:val('preNeuraxial')==='yes'?'high':val('preBleed'),
+      bleedingRisk:val('preBleed'), // Procedure bleeding risk is independent of anesthesia technique.
       operationDate:val('preDate'),operationTime:val('preTime'),crCl,weightKg:wt,
       weeklyDose:val('preWeekly'),apixDose:val('preApixDose'),neuraxial:val('preNeuraxial'),
       valvePosition:vs.includes('mitral')?'mitral':vs.includes('tricuspid')?'tricuspid':vs.includes('aortic')?'aortic':'',
@@ -302,7 +299,7 @@
       priorPeriopClot:clot==='yes'?'yes':'no',riskReviewed:checked('preRiskV2Confirm'),
       bridgeChoice:val('preBridge'),bridgeConfirmed:checked('preBridgeConfirmed'),
       lmwhMgPerKg:val('preLmwhMgKg'),lmwhMgPerDose:val('preLmwhDose'),lastDoseDateTime:val('preLastApix'),renalHoldDays:val('preRenalHold'),
-      neuraxialConfirmed:checked('preAsraConfirmed'),physicianConfirmed:checked('preConfirm')&&confirmed===revision
+      physicianConfirmed:checked('preConfirm')&&confirmed===revision
     };
   }
   function extraBlockers(p){
@@ -330,9 +327,6 @@
     if(p.anticoagulant==='warfarin'&&p.bridgeChoice==='yes'&&p.indication==='af'&&!val('preAFBridgeRationale')){
       b.push('AF: CHEST 2022 ไม่แนะนำ routine bridging; ถ้าเลือก bridging ต้องระบุเหตุผลเฉพาะรายก่อน Final');
     }
-    if(p.neuraxial==='unknown'||!p.neuraxial)b.push('Neuraxial / deep plexus: กรุณาเลือก Yes หรือ No');
-    else if(p.neuraxial==='yes'&&!checked('preAsraConfirmed'))
-      b.push('Neuraxial ASRA review: กรุณายืนยันว่าตรวจ INR / last dose / catheter plan กับวิสัญญีแล้ว');
     return b;
   }
   // Visual checklist: red controls identify fields that need input/review before Final.
@@ -340,7 +334,7 @@
     'preRiskV2Confirm','preScore','preAFStroke','preAFClot','preValveAt','preVTETime',
     'preVTEType','preVTERecur','preVTEThromb','preVTECancer','preVTEClot',
     'preWeekly','preTargetInr','preTargetInrCustom','preApixDose','preCrCl','preWeight','preBridgeConfirmed',
-    'preLmwhDose','preAFBridgeRationale','preNeuraxial','preAsraConfirmed','preRenalHold'];
+    'preLmwhDose','preAFBridgeRationale','preRenalHold'];
   function reviewControl(id){
     return $(id) || (id==='preValveAt'?root.querySelector('input[name="preValveAt"]'):null);
   }
@@ -369,8 +363,6 @@
     if(m.includes('explicitly confirm therapeutic bridging')||m.includes('physician must explicitly confirm'))return 'preBridgeConfirmed';
     if(m.includes('lmwh dose'))return 'preLmwhDose';
     if(m.includes('af: chest'))return 'preAFBridgeRationale';
-    if(m.includes('neuraxial / deep plexus: กรุณาเลือก'))return 'preNeuraxial';
-    if(m.includes('asra')||m.includes('neuraxial'))return val('preNeuraxial')==='yes'?'preAsraConfirmed':'preNeuraxial';
     return null;
   }
   function highlightReviewFields(p,blockers){
@@ -537,6 +529,7 @@
     if(preopInr)lines.push('ก่อนผ่าตัด: '+(preopInr.kind==='neuraxial'
       ?'INR ต้องอยู่ใน normal range ของ local lab ก่อน neuraxial needle placement (ASRA)'
       :'ตรวจ INR Day -1, goal INR <1.5; หาก INR >=1.5 ให้ consult surgeon/anesthetist และทบทวนแผน'));
+    if(p.neuraxial!=='no')lines.push('ส่งต่อวิสัญญี: ประเมิน Neuraxial / deep plexus และ catheter safety แยกต่างหาก; แผนยานี้ไม่ใช่การอนุญาตให้ทำ block');
     if(bridgeFootnote(p,v))lines.push(bridgeFootnote(p,v));
     if(p.indication==='af'&&p.bridgeChoice==='yes'&&val('preAFBridgeRationale'))
       lines.push('Individual AF bridging rationale: '+val('preAFBridgeRationale'));
@@ -564,9 +557,15 @@
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>Date</th><th>Drug</th><th>Management / Suggestion</th></tr></thead><tbody>'+
       rows.map(r=>'<tr><td>'+r.day+'</td><td>'+esc(r.date)+'</td><td>'+esc(r.drug)+'</td><td>'+esc(r.manage)+'</td></tr>').join('')+'</tbody></table>';
     const inrTarget=core.preopInrRequirement({anticoagulant:p.anticoagulant,action:v.action,neuraxial:p.neuraxial});
+    const anestheticHandoff=p.neuraxial!=='no'
+      ?'<p class="pre-print-note"><strong>ANESTHESIA HANDOFF:</strong> '+esc(p.neuraxial==='yes'
+        ?'Neuraxial/deep plexus planned: Anesthesiologist to verify INR, exact anticoagulant last dose and catheter timing per ASRA before block. Clinic medication plan is NOT neuraxial clearance.'
+        :'Anesthesia technique not established: if neuraxial/deep plexus is selected, anesthesiologist must review ASRA interruption, INR and catheter plan before block.')+'</p>'
+      :'';
     const warn=(blocked?'<p class="pre-print-warning">DRAFT - NOT FOR MEDICATION ORDERS. Pending review.</p>':'')+
       (inrTarget?'<p class="pre-print-note"><strong>Pre-op INR goal:</strong> '+esc(inrTarget.label)+'. '+esc(inrTarget.advice)+'</p>':'')+
       (bridgeFootnote(p,v)?'<p class="pre-print-note"><strong>Bridging note:</strong> '+esc(bridgeFootnote(p,v))+'</p>':'')+
+      anestheticHandoff+
       '<p class="pre-print-note">Post-op actions are CONDITIONAL: assess hemostasis/no bleeding and treating physician confirmation. Dates are suggested, not automatic orders.</p>';
     const footer='<footer class="pre-print-footer">Physician: '+esc(val('prePhysician')||'________________')+' &nbsp;&nbsp; Date: __________'+
       '<small>Clinical draft references: ISTH SSC 2026; ESC/EACTS 2025; ESC AF 2024; CHEST 2022; JAMA 2024; ASRA 2025. Validate locally.</small></footer>';
@@ -591,7 +590,9 @@
       (afRecommendationText(p)?'<p class="pre-guideline-advice">'+esc(afRecommendationText(p))+'</p>':'')+
       (bridgeFootnote(p,v)?'<p class="pre-lmwh-footnote">'+esc(bridgeFootnote(p,v))+'</p>':'');
     $('preSources').textContent='References: ISTH SSC 2026; '+v.sources.join(' / ');
-    $('preNotes').textContent=p.neuraxial==='yes'?v.neuraxialNote:'';
+    $('preNotes').textContent=p.neuraxial!=='no'
+      ?'Anesthesia handoff: Neuraxial / epidural and catheter safety to be assessed by anesthesiologist. Warfarin Clinic plan does not authorize needle placement.'
+      :'';
     buildTable();
     $('preOPDNote').value=noteText(p,v,blockers);
     refreshRendered();
