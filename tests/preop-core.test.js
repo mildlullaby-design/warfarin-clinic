@@ -60,3 +60,46 @@ test('no patient data storage API is used by preop modules',()=>{
     assert.doesNotMatch(src,/\b(?:localStorage|sessionStorage|indexedDB)\b/);
   }
 });
+
+
+test('CHEST 2022 AF bridge guidance defaults to no routine bridging',()=>{
+  assert.equal(core.afBridgeRecommendation({}).recommendation,'against-routine-bridging');
+  assert.match(core.afBridgeRecommendation({}).reason,/CHEST 2022/);
+});
+test('AF recent stroke remains individual review rather than automatic bridging',()=>{
+  const rec=core.afBridgeRecommendation({recentStroke:'yes'});
+  assert.equal(rec.recommendation,'individual-review');
+  const p=core.plan({...basis,bleedingRisk:'high',recentStroke:'yes',bridgeChoice:'no',riskReviewed:true});
+  assert.equal(p.bridging,false);
+});
+test('LMWH physician-selected dose is used for exact mg/mL conversion',()=>{
+  const p=core.plan({
+    ...basis,bleedingRisk:'high',weightKg:73,crCl:65,
+    bridgeChoice:'yes',bridgeConfirmed:true,riskReviewed:true,lmwhMgPerDose:'65'
+  });
+  assert.equal(p.dose.mg,65);
+  assert.equal(p.dose.exactMl,0.65);
+  assert.equal(p.dose.volume,'0.65');
+});
+test('LMWH dose rejects invalid manual override, rather than silently reverting',()=>{
+  const p=core.plan({
+    ...basis,bleedingRisk:'high',weightKg:73,crCl:65,
+    bridgeChoice:'yes',bridgeConfirmed:true,riskReviewed:true,lmwhMgPerDose:'-20'
+  });
+  assert.equal(p.dose,null);
+  assert.match(p.blockers.join(' '),/LMWH dose/);
+});
+test('table code includes day minus one INR check and avoids repetitive INR injection condition',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  assert.match(ui,/day===-1&&p\.bleedingRisk==='high'/);
+  assert.match(ui,/LAST DOSE Day -1 AM ONLY/);
+  assert.match(ui,/bridgeFootnote/);
+  assert.doesNotMatch(ui,/ONLY if INR subtherapeutic and start confirmed/);
+});
+test('procedure reference is visible inline and supports group filter',()=>{
+  const ui=fs.readFileSync(path.join(root,'preop-ui.js'),'utf8');
+  assert.match(ui,/preRiskInline/);
+  assert.match(ui,/preRiskInlineBody/);
+  assert.match(ui,/preRiskGroup/);
+  assert.match(ui,/Endoscopic polypectomy >=1 cm/);
+});
