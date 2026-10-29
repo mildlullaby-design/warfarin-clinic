@@ -882,3 +882,8 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
 .pre-print-sheet .pre-print-grid{font-size:9px;line-height:1.25}
 .pre-print-sheet .pre-print-grid td{padding:4px}
 @media print{.pre-print-sheet .pre-print-grid{font-size:8.6px}.pre-print-sheet{font-family:Arial,Tahoma,sans-serif}}
+
+.preop-module .pre-daily-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin:12px 0}
+.preop-module .pre-daily-grid label{display:flex;flex-direction:column;gap:4px;text-align:center;font-size:.85rem}
+.preop-module .pre-daily-grid input{width:100%;min-width:0;padding:7px 3px;text-align:center}
+@media(max-width:620px){.preop-module .pre-daily-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
