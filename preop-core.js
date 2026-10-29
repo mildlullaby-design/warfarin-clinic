@@ -165,7 +165,7 @@
             else if(offset<0){
               anticoagulant=offset <= -(holdDays||5)-1?'Warfarin usual regimen':'Hold Warfarin';
               if(offset===-3||offset===-2) management='LMWH '+doseText+' per confirmed bridge plan';
-              if(offset===-1)management='Last LMWH dose in AM only; omit PM dose. Confirm last dose approximately 24 h before procedure.';
+              if(offset===-1)management='Hold enoxaparin at least 24 h before surgery';
             } else {
               anticoagulant='Warfarin: conditional restart at usual maintenance regimen';
               if(bleed==='high' && offset<2)management='No therapeutic LMWH restart; assess hemostasis';
