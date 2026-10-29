@@ -297,8 +297,32 @@
     $('preRenalHoldWrap').classList.toggle('hidden',drug!=='apixaban'||!(Number(input().crCl)<30));
     root.querySelectorAll('.pre-conditional-time').forEach(e=>e.classList.toggle('hidden',val('preNeuraxial')!=='yes'));
   }
+  function hasSafeLmwh(p,v){
+    const renal=Number(p.crCl);
+    return p.anticoagulant==='warfarin' && v.action==='hold' &&
+      p.bridgeChoice==='yes' && p.bridgeConfirmed === true &&
+      Number.isFinite(renal) && renal>=30 && !!v.dose &&
+      Number.isFinite(v.dose.mg) && v.dose.mg>0;
+  }
+  function bridgeFootnote(p,v){
+    if(p.anticoagulant!=='warfarin'||p.bridgeChoice!=='yes') return '';
+    if(!hasSafeLmwh(p,v))return 'LMWH bridging ยังไม่พร้อมออกคำสั่ง: ต้องทบทวน renal function, dose และ physician confirmation ก่อน';
+    return 'Bridging note: เริ่ม therapeutic Enoxaparin หลัง INR ต่ำกว่า therapeutic range ตามผลตรวจที่แพทย์ประเมินก่อนเริ่ม (ไม่สั่งตรวจ INR ทุกวันโดยอัตโนมัติ). Last dose ประมาณ 24 ชั่วโมงก่อนหัตถการ; Day -1 AM เท่านั้น, งด PM. ยืนยันเวลาฉีดครั้งสุดท้ายกับเวลาเริ่มผ่าตัดจริง. ถ้า Neuraxial ต้องใช้ ASRA timing เพิ่มเติม';
+  }
+  function afRecommendationText(p){
+    if(p.indication!=='af'||p.anticoagulant!=='warfarin')return '';
+    const rule=core.afBridgeRecommendation({
+      recentStroke:val('preAFStroke')==='recent'?'yes':'no',
+      priorPeriopClot:val('preAFClot')==='yes'?'yes':'no'
+    });
+    return rule.recommendation==='individual-review'
+      ? 'AF bridging: CHEST 2022 ไม่แนะนำ routine bridging; มี thrombotic exception ต้องประเมินเฉพาะราย ไม่เริ่ม LMWH อัตโนมัติ'
+      : 'AF bridging: CHEST 2022 strong recommendation ไม่ทำ routine heparin bridging';
+  }
   function makeRows(p,v){
-    const rr=[];
+    const result=[];
+    const eligibleLmwh=hasSafeLmwh(p,v),expectedLmwh=p.anticoagulant==='warfarin'&&p.bridgeChoice==='yes';
+    const doseText=eligibleLmwh?'Enoxaparin '+v.dose.volume+' mL SC ('+Number(v.dose.mg.toFixed(1))+' mg)':'';
     for(let day=-7;day<=7;day++){
       let drug='',manage='';
       const holding=v.action==='hold'&&Number.isInteger(v.holdDays)&&day>=-v.holdDays&&day<=0;
@@ -307,30 +331,45 @@
         const dose=p.anticoagulant==='warfarin'&&!holding?dailyFor(day,p.operationDate):null;
         if(dose!==null)drug+=' ('+dose+' mg)';
       }
-      if(day===0){drug='PROCEDURE';manage='ผ่าตัด / ตรวจสอบ hemostasis';}
+      if(day===0){
+        drug='PROCEDURE';
+        manage='ผ่าตัด / ประเมิน hemostasis ก่อน restart';
+      }
       if(day>0){
         drug='Post-op: treating team to confirm';
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===1)
-          manage='Suggest restart Warfarin '+(dailyFor(day,p.operationDate)===null?'usual maintenance dose':dailyFor(day,p.operationDate)+' mg')+' if stable / no bleeding / hemostasis adequate';
+          manage='Suggest restart Warfarin '+(dailyFor(day,p.operationDate)===null?'usual maintenance dose':dailyFor(day,p.operationDate)+' mg')+' if stable, no bleeding, hemostasis adequate';
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===5)
-          manage='Suggest INR check (4 days after planned Day +1 restart); adjust if actual restart delayed. Target INR '+val('preTargetInr');
+          manage='Suggested INR check (4 วันหลัง planned restart Day +1); ถ้า restart จริงช้ากว่านี้ให้เลื่อน INR check. Target INR '+val('preTargetInr');
         if(p.anticoagulant==='apixaban'&&v.action==='hold'&&((p.bleedingRisk==='high'&&day===2)||(p.bleedingRisk!=='high'&&day===1)))
-          manage='Consider restart Apixaban '+val('preApixDose')+' mg BID if stable, no bleeding, adequate hemostasis and physician confirms';
+          manage='Suggest restart Apixaban '+val('preApixDose')+' mg BID if stable/no bleeding/hemostasis adequate and physician approves';
         if(p.anticoagulant==='apixaban'&&v.action==='hold'&&p.bleedingRisk==='high'&&day===3)
-          manage='Alternative restart window if bleeding risk/hemostasis requires delay; surgical team confirms';
+          manage='Alternative restart date if bleeding risk requires delay; surgical team confirms';
         if(p.anticoagulant==='apixaban'&&day===1&&p.bleedingRisk==='high')
-          manage='Consider VTE prophylaxis if indicated; NOT therapeutic bridging; treating team to decide';
+          manage='Consider postoperative VTE prophylaxis if indicated (not therapeutic bridging); treating team decides';
       }
-      if(p.anticoagulant==='warfarin'&&v.bridging){
-        const dose=v.dose?v.dose.volume+' mL SC ('+v.dose.mg.toFixed(1)+' mg)':'dose pending';
-        if(day===-3||day===-2)manage='LMWH '+dose+' q12h ONLY if INR subtherapeutic and start confirmed';
-        if(day===-1)manage='Check last LMWH time; approx 24 h before operation, confirm dose/timing';
-        if(day>0&&(day===1||day===2||day===3))manage+=(manage?' | ':'')+'Consider LMWH post-op per bleeding risk only if hemostasis adequate and physician approves';
-        if(day===5)manage+='; LMWH stop only when INR therapeutic and confirmed';
+      if(expectedLmwh){
+        if(day===-3||day===-2){
+          manage=eligibleLmwh?doseText+' q12h (planned bridging schedule)':'Bridging selected: dose/renal/confirmation pending - NO LMWH ORDER';
+        }
+        if(day===-1){
+          manage=eligibleLmwh
+            ?doseText+' LAST DOSE Day -1 AM ONLY; STOP thereafter, OMIT PM dose. Ensure >=24 h before procedure'
+            :'Bridging requires physician plan: do not administer LMWH pending review';
+        }
+        if(day>0&&(day===1||day===2||day===3)){
+          // Avoid repeatedly printing full-dose therapeutic LMWH as an unconditional postop order.
+          if(day===(p.bleedingRisk==='high'?2:1))
+            manage+=(manage?' | ':'')+'LMWH restart only if indicated, >=24 h (low/mod) or 48-72 h (high), hemostasis adequate and treating team confirms';
+        }
+        if(day===5&&p.anticoagulant==='warfarin')
+          manage+='; If LMWH was restarted, stop only once INR therapeutic and physician approves';
       }
-      rr.push({day,date:dateAt(p.operationDate,day),drug,manage});
+      if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===-1&&p.bleedingRisk==='high')
+        manage+=(manage?' | ':'')+'Check pre-op INR (aim at local procedural target; commonly <1.5 for major surgery). Review abnormal INR with surgeon';
+      result.push({day,date:dateAt(p.operationDate,day),drug,manage});
     }
-    return rr;
+    return result;
   }
   function plan(){
     const p=input(),v=core.plan(p),extra=extraBlockers(p);
