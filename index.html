@@ -51,6 +51,7 @@
     <nav class="module-nav" aria-label="Clinic modules">
       <button type="button" data-module-view="dose" aria-pressed="true" class="selected">Dose Optimizer</button>
       <button type="button" data-module-view="interactions" aria-pressed="false">Drug Interaction</button>
+      <button type="button" data-module-view="preop" aria-pressed="false">Pre-op Planner</button>
     </nav>
 
     <div class="layout" id="doseModule">
@@ -185,6 +186,87 @@
       <section id="interactionAdjustment" class="interaction-adjustment hidden" aria-labelledby="interactionAdjustmentHeading"></section>
     </section>
 
+
+    <section id="preopModule" class="panel preop-module hidden" aria-labelledby="preopHeading">
+      <div class="sectionhead"><h2 id="preopHeading">Pre-operative Anticoagulant Planner</h2><span class="pill">CLINICAL DRAFT · NOT VALIDATED</span></div>
+      <p class="muted">แผนก่อนผ่าตัดสำหรับ Warfarin / Apixaban ที่ผู้ป่วยใช้อยู่แล้ว · ไม่มีการบันทึกข้อมูลผู้ป่วย · ต้องมีแพทย์ทบทวนก่อนใช้จริง</p>
+      <div class="pre-form-grid">
+        <div class="field"><label for="preDrug">Anticoagulant</label><select id="preDrug"><option value="">เลือกยา</option><option value="warfarin">Warfarin</option><option value="apixaban">Apixaban</option></select></div>
+        <div class="field"><label for="preIndication">Primary indication</label><select id="preIndication"><option value="">เลือก</option><option value="af">Atrial Fibrillation</option><option value="mechanical">Mechanical heart valve</option><option value="vte">VTE (DVT / PE)</option></select></div>
+        <div class="field"><label for="preProcedure">Procedure</label><input id="preProcedure" placeholder="Procedure name (clinician classified)"></div>
+        <div class="field"><label for="preBleed">Procedure bleeding risk</label><select id="preBleed"><option value="">Unclassified — physician review</option><option value="minimal">Minimal</option><option value="lowmod">Low–Moderate</option><option value="high">High</option></select></div>
+        <div class="field"><label for="preDate">Operation date</label><input id="preDate" type="date"><small>หากไม่ทราบวันที่ จะได้เพียง Draft</small></div>
+        <div class="field"><label for="preTime">Operation / neuraxial time (if known)</label><input id="preTime" type="time"></div>
+        <div class="field"><label for="preName">Patient name</label><input id="preName" autocomplete="off" placeholder="ชื่อผู้ป่วย (ไม่บันทึก)"></div>
+        <div class="field"><label for="preHN">HN (optional)</label><input id="preHN" autocomplete="off"></div>
+        <div class="field"><label for="preAge">Age (years)</label><input id="preAge" type="number" min="18" max="120"></div>
+        <div class="field"><label for="preSex">Sex for Cockcroft–Gault</label><select id="preSex"><option value="">เลือก</option><option value="male">Male</option><option value="female">Female</option></select></div>
+        <div class="field"><label for="preWeight">Actual body weight (kg)</label><input id="preWeight" type="number" min="1" step="0.1"></div>
+        <div class="field"><label for="preCr">Serum creatinine (mg/dL)</label><input id="preCr" type="number" min="0.1" step="0.01"></div>
+        <div class="field"><label for="preCrCl">CrCl Cockcroft–Gault (mL/min)</label><input id="preCrCl" type="number" min="0.1" step="0.1"><button id="preCrCalc" type="button">Calculate CG</button><small>Uses actual weight; extreme weight requires clinical review.</small></div>
+        <div class="field"><label for="preNeuraxial">Neuraxial / deep plexus planned?</label><select id="preNeuraxial"><option value="unknown">Unknown</option><option value="no">No</option><option value="yes">Yes</option></select></div>
+        <div class="field hidden" id="preValveWrap"><label for="preValve">Mechanical valve position</label><select id="preValve"><option value="">Unknown</option><option value="aortic">Aortic</option><option value="mitral">Mitral</option><option value="tricuspid">Tricuspid</option><option value="multiple">Multiple</option></select></div>
+      </div>
+      <div id="preWarfarinFields" class="pre-subsection hidden">
+        <h3>Warfarin details</h3>
+        <div class="pre-form-grid">
+          <div class="field"><label for="preWeekly">Current weekly dose (mg/week)</label><input id="preWeekly" type="number" min="0" step="0.1"></div>
+          <div class="field"><label for="preTargetInr">Target INR</label><input id="preTargetInr" placeholder="e.g. 2–3"></div>
+          <div class="field"><label for="preInr">Latest INR (optional)</label><input id="preInr" type="number" step="0.1"></div>
+          <div class="field"><label for="preBridge">Therapeutic LMWH bridging?</label><select id="preBridge"><option value="no">No / not selected</option><option value="yes">Yes — physician selected</option></select></div>
+        </div>
+      </div>
+      <div id="preApixFields" class="pre-subsection hidden">
+        <h3>Apixaban details</h3>
+        <div class="pre-form-grid">
+          <div class="field"><label for="preApixDose">Apixaban dose per administration (BID)</label><select id="preApixDose"><option value="">Select</option><option value="2.5">2.5 mg BID</option><option value="5">5 mg BID</option><option value="10">10 mg BID</option></select></div>
+          <div class="field"><label for="preLastApix">Last actual/planned dose datetime (for confirmed neuraxial)</label><input id="preLastApix" type="datetime-local"></div>
+          <div class="field" id="preRenalHoldWrap"><label for="preRenalHold">Severe renal impairment: clinician-selected hold</label><select id="preRenalHold"><option value="">Not set</option><option value="3">3 days (review)</option><option value="4">4 days (review)</option></select></div>
+        </div>
+      </div>
+      <div class="pre-subsection">
+        <h3>Perioperative thrombotic risk review</h3>
+        <div class="pre-form-grid">
+          <div class="field"><label for="preRecentStroke">Recent stroke/TIA or systemic embolism?</label><select id="preRecentStroke"><option value="unknown">Unknown</option><option value="no">No known</option><option value="yes">Yes — recent</option></select></div>
+          <div class="field"><label for="preRecentVTE">Recent VTE?</label><select id="preRecentVTE"><option value="unknown">Unknown</option><option value="no">No known</option><option value="yes">Yes — recent</option></select></div>
+          <div class="field"><label for="preSevereThrombophilia">Severe thrombophilia risk factor?</label><select id="preSevereThrombophilia"><option value="unknown">Unknown</option><option value="no">No known</option><option value="yes">Yes</option></select></div>
+          <div class="field"><label for="prePriorClot">Prior perioperative thromboembolism?</label><select id="prePriorClot"><option value="unknown">Unknown</option><option value="no">No known</option><option value="yes">Yes</option></select></div>
+          <label class="check"><input type="checkbox" id="preRiskReviewed"> Physician has reviewed thrombotic risk and bridging decision</label>
+        </div>
+      </div>
+      <div id="preBridgeFields" class="pre-subsection hidden">
+        <h3>Therapeutic Enoxaparin Bridging — Requires explicit confirmation</h3>
+        <div class="pre-form-grid">
+          <div class="field"><label for="preLmwhMgKg">Prescriber-selected dose (mg/kg/dose)</label><input id="preLmwhMgKg" type="number" min="0.01" step="0.1" value="1"></div>
+          <label class="check"><input id="preBridgeConfirmed" type="checkbox"> Physician confirms bridging strategy and dose</label>
+        </div>
+        <p class="warning">Stock: Enoxaparin 60 mg/0.6 mL (100 mg/mL). Start only after INR subtherapeutic and clinician confirmation. Exact start day cannot be predicted.</p>
+      </div>
+      <details class="pre-subsection"><summary>Print details (optional)</summary>
+        <div class="pre-form-grid">
+          <div class="field"><label for="preHospital">Hospital / clinic header</label><input id="preHospital" placeholder="Warfarin Clinic"></div>
+          <div class="field"><label for="prePhysician">Physician</label><input id="prePhysician" placeholder="Physician name"></div>
+        </div>
+        <div class="field"><label for="preExtra">Additional Physician Notes</label><textarea id="preExtra" rows="2"></textarea></div>
+      </details>
+      <div class="pre-actions">
+        <button type="button" id="preNew">New patient / Clear</button>
+        <button type="button" id="prePreview">Generate Draft / Preview A4</button>
+      </div>
+      <section id="preOutput" class="pre-output" data-blocked="true">
+        <h3>Final Review</h3>
+        <p id="preStatus" class="pre-status blocked">DRAFT — NOT FOR MEDICATION ADMINISTRATION</p>
+        <div id="preSafety" class="pre-safety"></div>
+        <div id="prePlan" class="pre-plan"></div>
+        <div id="preGrid" class="hidden"></div>
+        <p class="pre-neuraxial" id="preNotes"></p>
+        <small id="preSources"></small>
+        <label class="check"><input id="preConfirm" type="checkbox"> I verified all interruption/restart intervals, dosing, and patient-specific risks. This is a clinician-reviewed plan.</label>
+        <button type="button" id="prePrint" class="primary" disabled>Print final A4</button>
+      </section>
+      <section id="prePrintSurface" class="pre-print-sheet pre-draft" aria-label="Printable plan preview"></section>
+    </section>
+
     <footer class="footer">ต้นแบบสำหรับบุคลากรทางการแพทย์: คำนวณเลขและจัดตารางยาเท่านั้น ไม่ประเมิน INR, การบ่งชี้, ภาวะเลือดออก หรือกำหนดขนาดยาที่เหมาะสมทางคลินิก โปรดตรวจสอบการแบ่งเม็ดกับผลิตภัณฑ์จริงและทบทวนสูตรก่อนสั่งยา · ไม่มีการส่งข้อมูลไปเซิร์ฟเวอร์จากตัวแอปนี้</footer>
   </div>
 
@@ -194,6 +276,8 @@
   </nav>
 
   <script src="pwa-update.js"></script>
+  <script src="preop-core.js"></script>
+  <script src="preop-ui.js"></script>
   <script src="optimizer.js"></script>
   <script src="app.js"></script>
   <script src="drug-interactions-imported.js"></script>

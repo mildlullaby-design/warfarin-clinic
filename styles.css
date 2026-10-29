@@ -822,3 +822,42 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
 .case-utilities button { min-height: 44px; padding: 8px 12px; font-size: .9rem; }
 .case-utilities .clear-case { color: var(--rose); border-color: var(--rose); }
 .case-utilities .clear-case:hover { background: var(--rose-soft); }
+
+
+/* PRE-OP module is an isolated extension to the existing UI */
+.preop-module { margin-top: 14px; }
+.preop-module .pre-form-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0; }
+.preop-module .field { min-width:0;display:flex;flex-direction:column;gap:5px; }
+.preop-module input:not([type=checkbox]),.preop-module select,.preop-module textarea { max-width:100%;box-sizing:border-box; }
+.preop-module .pre-subsection {border-top:1px solid #e6d5dd;padding:12px 0;margin-top:14px;}
+.preop-module .pre-actions {display:flex;flex-wrap:wrap;gap:10px;margin:16px 0;}
+.preop-module .pre-output {border:1px solid #d9c8d0;border-radius:12px;padding:16px;background:var(--panel,#fff);margin:18px 0;}
+.preop-module .pre-status {font-weight:700;padding:8px 10px;background:#fff5d9;color:#755200;border-radius:6px;}
+.preop-module .pre-status.blocked {background:#ffe7e7;color:#9a2222;}
+.preop-module .pre-safety {line-height:1.6;color:#7a3030;}
+.preop-module .pre-plan,.preop-module .pre-neuraxial {line-height:1.55;}
+.preop-module .pre-table-wrap {overflow-x:auto;}
+.preop-module .pre-table-wrap table {width:100%;font-size:12px;}
+.preop-module .pre-table-wrap th,.preop-module .pre-table-wrap td {padding:5px;vertical-align:top;border-bottom:1px solid #ddd;}
+.pre-print-sheet {background:white;color:#111;line-height:1.35;padding:17mm 14mm;margin:20px auto;border:1px solid #ddd;width:210mm;min-height:297mm;max-width:100%;box-sizing:border-box;font-family:Arial,"Noto Sans Thai",sans-serif;font-size:11px;}
+.pre-print-sheet:empty {display:none;}
+.pre-print-sheet.pre-draft {position:relative;}
+.pre-print-sheet.pre-draft:before {content:"DRAFT — NOT FOR MEDICATION ADMINISTRATION";color:#ad3838;opacity:.22;position:absolute;top:42%;left:8%;transform:rotate(-22deg);font-size:23px;font-weight:bold;pointer-events:none;}
+.pre-print-title h1,.pre-print-title h2 {text-align:center;margin:3px 0;}
+.pre-print-title h1 {font-size:18px;} .pre-print-title h2 {font-size:14px;}
+.pre-print-patient {border-top:1px solid #333;border-bottom:1px solid #333;padding:7px 0;margin:10px 0;line-height:1.55;}
+.pre-print-content {min-height:90mm;} .pre-print-prose p {margin:8px 0;}
+.pre-print-grid {width:100%;border-collapse:collapse;font-size:9px;line-height:1.2;}
+.pre-print-grid th,.pre-print-grid td {border:1px solid #777;padding:4px;vertical-align:top;}
+.pre-print-note,.pre-print-warning {margin-top:10px;font-size:10px;}
+.pre-print-footer {display:flex;flex-direction:column;gap:6px;border-top:1px solid #333;padding-top:10px;}
+@media(max-width:680px) {.preop-module .pre-form-grid {grid-template-columns:1fr;}.pre-print-sheet {width:100%;padding:10mm 7mm;}}
+@page {size:A4 portrait;margin:10mm;}
+@media print {
+ body * {visibility:hidden !important;}
+ #prePrintSurface,#prePrintSurface * {visibility:visible !important;}
+ #prePrintSurface {position:absolute;left:0;top:0;width:100%;height:auto;max-width:none;min-height:0;border:0;padding:0;margin:0;box-shadow:none;font-size:10px;}
+ .pre-print-content {min-height:0;}
+ .pre-print-grid {font-size:9px;}
+ .pre-print-grid tr {break-inside:avoid;}
+}
