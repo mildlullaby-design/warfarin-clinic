@@ -81,6 +81,34 @@
   '<div class="field"><label for="preVTEClot">Previous VTE during anticoagulant interruption</label><select id="preVTEClot"><option value="">เลือก</option><option value="no">ไม่เคย</option><option value="yes">เคย</option><option value="unknown">ไม่ทราบ</option></select></div></div></div>'+
   '<label class="check"><input type="checkbox" id="preRiskV2Confirm"> Physician reviewed thrombotic risk / guideline recommendation</label>';
   $('preBridgeFields').insertAdjacentElement('beforebegin',risk);
+  const guideline=document.createElement('div');
+  guideline.id='preRiskGuideline';guideline.className='pre-guideline-summary';
+  risk.querySelector('#preRiskV2Confirm').closest('label').insertAdjacentElement('beforebegin',guideline);
+  function updateGuidelineSummary(){
+    const ind=val('preIndication');
+    const ref='https://journal.chestnet.org/article/S0012-3692%2822%2901359-9/abstract';
+    const valveRef='https://academic.oup.com/eurheartj/article/46/44/4635/8234488';
+    const el=$('preRiskGuideline');
+    if(ind==='af')el.innerHTML='<strong>AF — CHEST 2022</strong><p>No routine heparin bridging (strong recommendation). Recent stroke/TIA &lt;3 mo หรือ prior thrombosis during interruption: individual review; score อย่างเดียวไม่ใช่คำสั่งให้ bridge.</p><a target="_blank" rel="noopener noreferrer" href="'+ref+'">CHEST 2022</a>';
+    else if(ind==='mechanical')el.innerHTML='<strong>Mechanical valve — ESC/EACTS 2025</strong><p>Mitral/tricuspid MHV, older valve, LVEF &lt;35%, recent thromboembolism หรือ thrombophilia เพิ่ม thrombotic risk; Major high-bleeding-risk surgery อาจต้อง bridging ตาม risk. ยืนยันตำแหน่ง valve และแผนรายบุคคล.</p><a target="_blank" rel="noopener noreferrer" href="'+valveRef+'">ESC VHD 2025</a>';
+    else if(ind==='vte')el.innerHTML='<strong>VTE — CHEST 2022</strong><p>โดยทั่วไป suggest against routine bridging; VTE &lt;3 mo, severe thrombophilia หรือ selected active cancer ให้พิจารณา individual risk review.</p><a target="_blank" rel="noopener noreferrer" href="'+ref+'">CHEST 2022</a>';
+    else el.innerHTML='<strong>เลือก Indication ก่อน</strong><p>จะแสดงสรุป guideline สำหรับประเมิน Thrombotic risk</p>';
+  }
+  $('preIndication').addEventListener('change',updateGuidelineSummary);
+  updateGuidelineSummary();
+  const asraReview=document.createElement('div');
+  asraReview.id='preAsraReview';asraReview.className='pre-guideline-summary hidden';
+  asraReview.innerHTML='<strong>Neuraxial / deep plexus — ASRA 2025</strong>'+
+    '<p>Warfarin: hold 5 days และ INR normalized (local lab) ก่อน needle placement. Therapeutic LMWH: last dose ≥24 h. Apixaban: high-dose ≥72 h, low-dose ≥36 h (ต้องแยก dose category ตาม indication/renal function). ตรวจ catheter timing เพิ่มเติม.</p>'+
+    '<label class="check"><input id="preAsraConfirmed" type="checkbox"> ยืนยันว่าได้ทบทวน INR / last dose / catheter timing ร่วมกับทีมวิสัญญีแล้ว</label>'+
+    '<a href="https://rapm.bmj.com/content/early/2025/09/16/rapm-2024-105766" target="_blank" rel="noopener noreferrer">ASRA 2025</a>';
+  $('preNeuraxial').closest('.field').insertAdjacentElement('afterend',asraReview);
+  const showAsra=()=>asraReview.classList.toggle('hidden',val('preNeuraxial')!=='yes');
+  $('preNeuraxial').addEventListener('change',()=>{
+    if(val('preNeuraxial')!=='yes')$('preAsraConfirmed').checked=false;
+    showAsra();
+  });
+  showAsra();
   inputScreen.querySelector('.pre-actions')?.insertAdjacentHTML('beforeend','<span class="muted">สร้าง Draft ก่อน แล้วตรวจและยืนยันบนหน้าถัดไป</span>');
 
   const procedureField=$('preProcedure').closest('.field');
@@ -192,6 +220,14 @@
     '<div class="field"><label>ปริมาตรฉีดตามขนาดยาที่เลือก</label><strong id="preLmwhVolume">กรอกน้ำหนักเพื่อคำนวณ</strong>'+
     '<button type="button" id="preLmwhResetDose">Reset: 1 mg/kg</button></div></div>';
   $('preBridgeFields').append(lmwhDoseWidget);
+  const bridgingSummary=document.createElement('div');
+  bridgingSummary.className='pre-guideline-summary';
+  bridgingSummary.id='preBridgingGuidance';
+  bridgingSummary.innerHTML='<strong>Therapeutic LMWH bridging — CHEST 2022 / ASRA 2025</strong>'+
+    '<p>ใช้เมื่อแพทย์เลือก bridging หลังประเมิน indication/thrombotic risk; ไม่เป็น routine สำหรับ AF หรือ VTE. ขนาดตัวอย่าง Enoxaparin 1 mg/kg SC q12h เมื่อ renal function เหมาะสม (CrCl &lt;30: no automatic LMWH order). Last dose ≥24 h ก่อนผ่าตัด. Restart หลัง hemostasis adequate: โดยทั่วไป ≥24 h (low/mod) หรือ 48–72 h (high bleeding risk); neuraxial ต้องตรวจ catheter precautions.</p>'+
+    '<a href="https://journal.chestnet.org/article/S0012-3692%2822%2901359-9/abstract" target="_blank" rel="noopener noreferrer">CHEST 2022</a> · '+
+    '<a href="https://rapm.bmj.com/content/early/2025/09/16/rapm-2024-105766" target="_blank" rel="noopener noreferrer">ASRA 2025</a>';
+  $('preBridgeConfirmed').closest('label').insertAdjacentElement('beforebegin',bridgingSummary);
   let lmwhDoseEdited=false;
   function refreshLmwhDose(){
     if(!lmwhDoseEdited){
@@ -266,7 +302,7 @@
       priorPeriopClot:clot==='yes'?'yes':'no',riskReviewed:checked('preRiskV2Confirm'),
       bridgeChoice:val('preBridge'),bridgeConfirmed:checked('preBridgeConfirmed'),
       lmwhMgPerKg:val('preLmwhMgKg'),lmwhMgPerDose:val('preLmwhDose'),lastDoseDateTime:val('preLastApix'),renalHoldDays:val('preRenalHold'),
-      physicianConfirmed:checked('preConfirm')&&confirmed===revision
+      neuraxialConfirmed:checked('preAsraConfirmed'),physicianConfirmed:checked('preConfirm')&&confirmed===revision
     };
   }
   function extraBlockers(p){
@@ -294,7 +330,9 @@
     if(p.anticoagulant==='warfarin'&&p.bridgeChoice==='yes'&&p.indication==='af'&&!val('preAFBridgeRationale')){
       b.push('AF: CHEST 2022 ไม่แนะนำ routine bridging; ถ้าเลือก bridging ต้องระบุเหตุผลเฉพาะรายก่อน Final');
     }
-    if(p.neuraxial!=='no')b.push('Neuraxial/deep plexus: ต้องยืนยันแผนกับวิสัญญีและตรวจ ASRA timing ก่อน Final.');
+    if(p.neuraxial==='unknown'||!p.neuraxial)b.push('Neuraxial / deep plexus: กรุณาเลือก Yes หรือ No');
+    else if(p.neuraxial==='yes'&&!checked('preAsraConfirmed'))
+      b.push('Neuraxial ASRA review: กรุณายืนยันว่าตรวจ INR / last dose / catheter plan กับวิสัญญีแล้ว');
     return b;
   }
   // Visual checklist: red controls identify fields that need input/review before Final.
@@ -302,7 +340,7 @@
     'preRiskV2Confirm','preScore','preAFStroke','preAFClot','preValveAt','preVTETime',
     'preVTEType','preVTERecur','preVTEThromb','preVTECancer','preVTEClot',
     'preWeekly','preTargetInr','preTargetInrCustom','preApixDose','preCrCl','preWeight','preBridgeConfirmed',
-    'preLmwhDose','preAFBridgeRationale','preNeuraxial','preRenalHold'];
+    'preLmwhDose','preAFBridgeRationale','preNeuraxial','preAsraConfirmed','preRenalHold'];
   function reviewControl(id){
     return $(id) || (id==='preValveAt'?root.querySelector('input[name="preValveAt"]'):null);
   }
@@ -331,7 +369,8 @@
     if(m.includes('explicitly confirm therapeutic bridging')||m.includes('physician must explicitly confirm'))return 'preBridgeConfirmed';
     if(m.includes('lmwh dose'))return 'preLmwhDose';
     if(m.includes('af: chest'))return 'preAFBridgeRationale';
-    if(m.includes('neuraxial')||m.includes('asra'))return 'preNeuraxial';
+    if(m.includes('neuraxial / deep plexus: กรุณาเลือก'))return 'preNeuraxial';
+    if(m.includes('asra')||m.includes('neuraxial'))return val('preNeuraxial')==='yes'?'preAsraConfirmed':'preNeuraxial';
     return null;
   }
   function highlightReviewFields(p,blockers){
@@ -367,6 +406,8 @@
   }
   function switchFields(){
     const drug=val('preDrug'),ind=val('preIndication'),bridge=val('preBridge')==='yes';
+    updateGuidelineSummary();
+    showAsra();
     $('preWarfarinFields').classList.toggle('hidden',drug!=='warfarin');
     targetWrap.classList.toggle('hidden',val('preTargetInr')!=='other');
     $('preApixFields').classList.toggle('hidden',drug!=='apixaban');
@@ -548,7 +589,7 @@
       (afRecommendationText(p)?'<p class="pre-guideline-advice">'+esc(afRecommendationText(p))+'</p>':'')+
       (bridgeFootnote(p,v)?'<p class="pre-lmwh-footnote">'+esc(bridgeFootnote(p,v))+'</p>':'');
     $('preSources').textContent='References: ISTH SSC 2026; '+v.sources.join(' / ');
-    $('preNotes').textContent=p.neuraxial!=='no'?v.neuraxialNote:'';
+    $('preNotes').textContent=p.neuraxial==='yes'?v.neuraxialNote:'';
     buildTable();
     $('preOPDNote').value=noteText(p,v,blockers);
     refreshRendered();
