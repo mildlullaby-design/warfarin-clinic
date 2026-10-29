@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '0.10.1-preop-disabled';
+const APP_VERSION = '0.10.2-legacy-preop-removed';
 const CACHE_PREFIX = 'warfarin-dose-optimizer-';
 const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}`;
 const APP_SHELL = [
