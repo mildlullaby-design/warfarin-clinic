@@ -79,11 +79,11 @@
   '<details><summary>Thrombophilia / Thrombotic risk</summary><table><tr><th>Condition</th><th>Risk feature</th></tr><tr><td>APS, antithrombin/protein C/S deficiency, homozygous/multiple thrombophilia</td><td>High</td></tr><tr><td>Heterozygous FVL / Prothrombin G20210A</td><td>Moderate</td></tr></table><small>CHEST 2022 risk table; does not independently mandate bridging.</small></details></div>'+
   '<div class="field"><label for="preVTECancer">Cancer history</label><select id="preVTECancer"><option value="">เลือก</option><option value="none">ไม่มี Active cancer หรือประวัติภายใน 5 ปี</option><option value="high">Active pancreatic / primary brain / gastric / esophageal cancer / MPN</option><option value="other">Other active cancer</option><option value="history">Cancer history ภายใน 5 ปี (ไม่ active)</option><option value="unknown">ไม่ทราบ</option></select></div>'+
   '<div class="field"><label for="preVTEClot">Previous VTE during anticoagulant interruption</label><select id="preVTEClot"><option value="">เลือก</option><option value="no">ไม่เคย</option><option value="yes">เคย</option><option value="unknown">ไม่ทราบ</option></select></div></div></div>'+
-  '<label class="check"><input type="checkbox" id="preRiskV2Confirm"> Physician reviewed thrombotic risk / guideline recommendation</label>';
+  '<p class="muted">Risk assessment ตามข้อมูลที่กรอก; โปรดตรวจ guidance ด้านล่างก่อนออกแผน</p>';
   $('preBridgeFields').insertAdjacentElement('beforebegin',risk);
   const guideline=document.createElement('div');
   guideline.id='preRiskGuideline';guideline.className='pre-guideline-summary';
-  risk.querySelector('#preRiskV2Confirm').closest('label').insertAdjacentElement('beforebegin',guideline);
+  risk.append(guideline);
   function updateGuidelineSummary(){
     const ind=val('preIndication');
     const ref='https://journal.chestnet.org/article/S0012-3692%2822%2901359-9/abstract';
@@ -177,8 +177,7 @@
   const draft=document.createElement('button');draft.type='button';draft.id='preDraftPrint';draft.textContent='Print Draft A4';
   $('prePrint').insertAdjacentElement('beforebegin',draft);
   $('prePreview').textContent='Generate Plan / Preview A4';
-  $('preConfirm').parentElement.lastChild.textContent=' แพทย์ยืนยันว่าได้ตรวจ risk, ขนาดยา, วันที่ และเงื่อนไขการเริ่มยาแล้ว';
-  $('prePrint').textContent='Print Final A4 (Clinician Review)';
+  $('prePrint').textContent='Confirm & Print Final A4';
   $('preNotes').textContent='';
 
   // Hybrid current Warfarin regimen: weekly total or optional 7-day mg schedule.
@@ -224,7 +223,7 @@
     '<p>ใช้เมื่อแพทย์เลือก bridging หลังประเมิน indication/thrombotic risk; ไม่เป็น routine สำหรับ AF หรือ VTE. ขนาดตัวอย่าง Enoxaparin 1 mg/kg SC q12h เมื่อ renal function เหมาะสม (CrCl &lt;30: no automatic LMWH order). Last dose ≥24 h ก่อนผ่าตัด. Restart หลัง hemostasis adequate: โดยทั่วไป ≥24 h (low/mod) หรือ 48–72 h (high bleeding risk); neuraxial ต้องตรวจ catheter precautions.</p>'+
     '<a href="https://journal.chestnet.org/article/S0012-3692%2822%2901359-9/abstract" target="_blank" rel="noopener noreferrer">CHEST 2022</a> · '+
     '<a href="https://rapm.bmj.com/content/early/2025/09/16/rapm-2024-105766" target="_blank" rel="noopener noreferrer">ASRA 2025</a>';
-  $('preBridgeConfirmed').closest('label').insertAdjacentElement('beforebegin',bridgingSummary);
+  $('preBridgeFields').prepend(bridgingSummary);
   let lmwhDoseEdited=false;
   function refreshLmwhDose(){
     if(!lmwhDoseEdited){
@@ -296,16 +295,15 @@
       valvePosition:vs.includes('mitral')?'mitral':vs.includes('tricuspid')?'tricuspid':vs.includes('aortic')?'aortic':'',
       valveRiskFactors:vf.some(x=>x!=='unknown')?'yes':'no',recentStroke:recent?'yes':'no',
       recentVTE:indication==='vte'&&recent?'yes':'no',severeThrombophilia:thromb?'yes':'no',
-      priorPeriopClot:clot==='yes'?'yes':'no',riskReviewed:checked('preRiskV2Confirm'),
-      bridgeChoice:val('preBridge'),bridgeConfirmed:checked('preBridgeConfirmed'),
+      priorPeriopClot:clot==='yes'?'yes':'no',
+      bridgeChoice:val('preBridge'),
       lmwhMgPerKg:val('preLmwhMgKg'),lmwhMgPerDose:val('preLmwhDose'),lastDoseDateTime:val('preLastApix'),renalHoldDays:val('preRenalHold'),
-      physicianConfirmed:checked('preConfirm')&&confirmed===revision
+      physicianConfirmed:false
     };
   }
   function extraBlockers(p){
     const b=[],ind=p.indication;
     if(!mappedProcedure && !checked('preOtherVerified'))b.push('Other procedure: แพทย์ต้องยืนยัน bleeding risk ที่ประเมินเองก่อน Final.');
-    if(!checked('preRiskV2Confirm'))b.push('ยังไม่ได้ยืนยันการประเมิน Thrombotic risk');
     if(ind==='af'){
       const score=num('preScore');
       if(!Number.isInteger(score)||score<0||score>8)b.push('ระบุ CHA2DS2-VA score (กรอกเองหรือกดคำนวณ)');
@@ -331,9 +329,9 @@
   }
   // Visual checklist: red controls identify fields that need input/review before Final.
   const REVIEW_FIELDS=['preDrug','preIndication','preProcedure','preBleed','preOtherVerified','preDate',
-    'preRiskV2Confirm','preScore','preAFStroke','preAFClot','preValveAt','preVTETime',
+    'preScore','preAFStroke','preAFClot','preValveAt','preVTETime',
     'preVTEType','preVTERecur','preVTEThromb','preVTECancer','preVTEClot',
-    'preWeekly','preTargetInr','preTargetInrCustom','preApixDose','preCrCl','preWeight','preBridgeConfirmed',
+    'preWeekly','preTargetInr','preTargetInrCustom','preApixDose','preCrCl','preWeight',
     'preLmwhDose','preAFBridgeRationale','preRenalHold'];
   function reviewControl(id){
     return $(id) || (id==='preValveAt'?root.querySelector('input[name="preValveAt"]'):null);
@@ -345,7 +343,6 @@
     if(m.includes('procedure name'))return 'preProcedure';
     if(m.includes('bleeding risk')||m.includes('other procedure'))return m.includes('other procedure')?'preOtherVerified':'preBleed';
     if(m.includes('operation date')||m.includes('invalid operation'))return 'preDate';
-    if(m.includes('thrombotic risk')||m.includes('risk/bridging decision')||m.includes('exceptional'))return 'preRiskV2Confirm';
     if(m.includes('cha2ds2-va'))return 'preScore';
     if(m.includes('stroke/tia')&&m.includes('perioperative'))return 'preAFStroke';
     if(m.includes('mechanical valve')||m.includes('aortic mhv'))return 'preValveAt';
@@ -360,7 +357,6 @@
     if(m.includes('apixaban dose')||m.includes('apixaban regimen'))return 'preApixDose';
     if(m.includes('crcl')||m.includes('renal impairment'))return 'preCrCl';
     if(m.includes('body weight'))return 'preWeight';
-    if(m.includes('explicitly confirm therapeutic bridging')||m.includes('physician must explicitly confirm'))return 'preBridgeConfirmed';
     if(m.includes('lmwh dose'))return 'preLmwhDose';
     if(m.includes('af: chest'))return 'preAFBridgeRationale';
     return null;
@@ -415,7 +411,7 @@
   function hasSafeLmwh(p,v){
     const renal=Number(p.crCl);
     return p.anticoagulant==='warfarin' && v.action==='hold' &&
-      p.bridgeChoice==='yes' && p.bridgeConfirmed === true &&
+      p.bridgeChoice==='yes' &&
       Number.isFinite(renal) && renal>=30 && !!v.dose &&
       Number.isFinite(v.dose.mg) && v.dose.mg>0;
   }
