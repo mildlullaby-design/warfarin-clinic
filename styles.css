@@ -984,3 +984,73 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
     width:auto!important;white-space:normal;overflow-wrap:break-word
   }
 }
+
+
+/* Pre-op A4 print redesign: Sarabun 16pt, larger physical paper margins. */
+.pre-print-sheet{
+  padding:20mm!important;
+  font-family:"Sarabun","TH Sarabun New",Tahoma,sans-serif!important;
+  font-size:16pt!important;
+  line-height:1.4;
+}
+.pre-print-sheet .pre-print-heading{font-family:inherit!important;font-size:18pt!important;line-height:1.25}
+.pre-print-sheet .pre-print-patient,
+.pre-print-sheet .pre-print-note,
+.pre-print-sheet .pre-print-warning,
+.pre-print-sheet .pre-print-footer,
+.pre-print-sheet .pre-bridging-print,
+.pre-print-sheet .pre-print-grid{font-size:16pt!important;line-height:1.32}
+.pre-print-sheet .pre-print-grid{width:100%;border-collapse:collapse;table-layout:fixed}
+.pre-print-sheet .pre-print-grid td,
+.pre-print-sheet .pre-print-grid th{
+  font-size:inherit!important;padding:5pt!important;
+  overflow-wrap:anywhere;word-break:normal;vertical-align:top;
+}
+.pre-print-sheet .pre-print-grid th:nth-child(1){width:10%}
+.pre-print-sheet .pre-print-grid th:nth-child(2){width:19%}
+.pre-print-sheet .pre-print-grid th:nth-child(3){width:25%}
+.pre-print-sheet .pre-print-grid thead{display:table-header-group}
+.pre-print-sheet .pre-print-grid tr{break-inside:avoid;page-break-inside:avoid}
+.pre-print-sheet .pre-bridging-print{
+  margin:8mm 0 6mm;
+  padding:4mm 5mm;
+  border-left:2px solid #666;
+}
+.pre-print-sheet .pre-bridging-print strong{display:block;margin-bottom:3mm}
+.pre-print-sheet .pre-bridging-print p{font-size:inherit;margin:0 0 3mm;line-height:1.4}
+.pre-print-sheet .pre-bridging-print p:last-child{margin-bottom:0}
+.pre-print-sheet .pre-print-footer{border:0;padding-top:0;display:block;margin-top:10mm}
+.pre-print-sheet .pre-signature-block{
+  margin-left:auto;width:95mm;max-width:100%;
+  text-align:center;line-height:1.6;
+  break-inside:avoid;page-break-inside:avoid;
+}
+.pre-print-sheet .pre-signature-line{white-space:nowrap}
+.pre-print-sheet .pre-signature-name{margin-top:1mm}
+.pre-print-sheet .pre-signature-date{margin-top:5mm}
+.pre-print-sheet .pre-reference-line{display:block;margin-top:10mm;font-size:12pt;line-height:1.3}
+@page{size:A4 portrait;margin:20mm}
+@media print{
+  html,body{margin:0!important;padding:0!important;background:white!important}
+  #prePrintSurface{
+    position:static!important;left:auto!important;top:auto!important;
+    width:100%!important;max-width:none!important;min-height:0!important;height:auto!important;
+    padding:0!important;margin:0!important;border:0!important;box-shadow:none!important;
+    box-sizing:border-box!important;overflow:visible!important;
+  }
+  #prePrintSurface,#prePrintSurface *{
+    font-family:"Sarabun","TH Sarabun New",Tahoma,sans-serif!important;
+    font-size:16pt!important;line-height:1.35;
+  }
+  #prePrintSurface .pre-print-heading{font-size:18pt!important}
+  #prePrintSurface .pre-print-grid{font-size:16pt!important;line-height:1.25}
+  #prePrintSurface .pre-print-grid td,
+  #prePrintSurface .pre-print-grid th{font-size:16pt!important;padding:5pt!important}
+  #prePrintSurface .pre-print-note,
+  #prePrintSurface .pre-print-warning,
+  #prePrintSurface .pre-bridging-print{font-size:16pt!important}
+  #prePrintSurface .pre-reference-line{font-size:12pt!important}
+  #prePrintSurface .pre-signature-block{width:95mm;max-width:100%;margin-left:auto}
+  #prePrintSurface .pre-print-grid tr{break-inside:avoid;page-break-inside:avoid}
+  #prePrintSurface .pre-print-grid thead{display:table-header-group}
+}
