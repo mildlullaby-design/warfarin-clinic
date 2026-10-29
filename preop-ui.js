@@ -605,8 +605,8 @@
     const anesthesiaAlerts=v.warnings.filter(x=>x.startsWith('ANESTHESIA ALERT:'));
     const bridgingText=bridgeFootnote(p,v);
     const bridgingPrint=bridgingText
-      ?'<div class="pre-bridging-print"><strong>Bridging note:</strong>'+
-        '<ul><li>'+esc(bridgingText.replace(/^Bridging note:\s*/i,''))+'</li></ul></div>'
+      ?'<p class="pre-print-note pre-bridging-inline"><strong>Bridging note:</strong> '+
+        esc(bridgingText.replace(/^Bridging note:\s*/i,''))+'</p>'
       :'';
     const inrPrint=inrTarget
       ?'<p class="pre-print-note"><strong>INR ก่อนผ่าตัด:</strong> '+esc(inrTarget.kind==='neuraxial'
