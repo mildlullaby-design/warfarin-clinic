@@ -236,7 +236,7 @@
 
   const selectedValues=name=>[...root.querySelectorAll('input[name="'+name+'"]:checked')].map(x=>x.value);
   function targetInr(){
-    return targetInr()==='other'?val('preTargetInrCustom').replace(/\s+/g,''):val('preTargetInr');
+    return val('preTargetInr')==='other'?val('preTargetInrCustom').replace(/\s+/g,''):val('preTargetInr');
   }
   function validTargetInr(){
     const t=targetInr(),m=t.match(/^(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/);
@@ -516,7 +516,7 @@
       ' · Procedure: '+esc(p.procedure||'-')+
       '<br>Bleeding risk: '+esc(LABEL[p.bleedingRisk]||'-')+' · CrCl: '+esc(p.crCl||'-')+' mL/min'+
       (p.indication==='mechanical'?' · Valve: '+esc(selectedValues('preValveAt').join('+')||'Unknown'):'')+
-      (p.anticoagulant==='warfarin'?' · Warfarin '+esc(p.weeklyDose)+' mg/wk · Target INR '+esc(val('preTargetInr')):' · Apixaban '+esc(p.apixDose)+' mg BID')+
+      (p.anticoagulant==='warfarin'?' · Warfarin '+esc(p.weeklyDose)+' mg/wk · Target INR '+esc(targetInr()):' · Apixaban '+esc(p.apixDose)+' mg BID')+
       '</div>';
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>Date</th><th>Drug</th><th>Management / Suggestion</th></tr></thead><tbody>'+
       rows.map(r=>'<tr><td>'+r.day+'</td><td>'+esc(r.date)+'</td><td>'+esc(r.drug)+'</td><td>'+esc(r.manage)+'</td></tr>').join('')+'</tbody></table>';
