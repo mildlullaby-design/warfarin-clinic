@@ -36,8 +36,8 @@ test('Full DOM: step 04 shows both selected risks before step 05 bridging',()=>{
   const dom=openPreop(),d=dom.window.document;
   const sections=[...d.querySelectorAll('#preAssessmentLayout > .pre-ui-section')];
   assert.equal(sections.length,5);
-  assert.match(sections[3].textContent,/04\s+Risk Summary & Reference/);
-  assert.match(sections[4].textContent,/05\s+Bridging Plan/);
+  assert.match(sections[3].textContent,/04\s*Risk Summary & Reference/);
+  assert.match(sections[4].textContent,/05\s*Bridging Plan/);
   assert.ok(sections[3].contains(d.getElementById('preBleedingRiskResult')));
   assert.ok(sections[3].contains(d.getElementById('preThromboticResult')));
   assert.ok(sections[4].contains(d.getElementById('preBridge')));
