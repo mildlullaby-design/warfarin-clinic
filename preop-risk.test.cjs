@@ -37,3 +37,21 @@ test('official print header groups operation date and indication anticoagulant w
   assert.match(ui,/pre-header-bridge/);
   assert.match(ui,/<strong>Thrombotic risk:<\/strong>/);
 });
+
+test('Bridging documentation shows clinical reasons, never generic physician approved wording',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const ui=fs.readFileSync(path.join(__dirname,'preop-ui.js'),'utf8');
+  assert.match(ui,/function bridgingRationale\(/);
+  assert.match(ui,/a\.reasons\.join\(', '\)/);
+  assert.match(ui,/out\.push\('Bridging: '[\s\S]*?bridgingRationale\(p,a\)/);
+  assert.match(ui,/const bridgeReason=bridgingRationale\(p,a\)/);
+  assert.doesNotMatch(ui,/แพทย์ยืนยันหลังประเมิน thrombotic\/bleeding risk/);
+  assert.doesNotMatch(ui,/physician-reviewed individual decision/);
+});
+test('Print preview and paper output explicitly separate header groups',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const css=fs.readFileSync(path.join(__dirname,'styles.css'),'utf8');
+  assert.match(css,/#prePrintExport \.pre-print-patient \.pre-header-row/);
+  assert.match(css,/margin:0 0 2mm!important/);
+  assert.match(css,/#prePrintExport \.pre-print-patient \.pre-header-procedure/);
+});
