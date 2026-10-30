@@ -776,7 +776,12 @@
   const printHtml=(p,v,blocked)=>{
     const a=thromboticAssessment();
     const riskLabel=a.level==='review'?'Needs review':a.level[0].toUpperCase()+a.level.slice(1);
-    const reasons=a.reasons.join(', ') || 'ต้องทบทวนข้อมูล';
+    // Header-only abbreviations: retain every reason, omit redundant score cutoff.
+    const a4Reason=value=>String(value||'')
+      .replace(/Rheumatic mitral stenosis \/ valvular AF/g,'Rheumatic MS')
+      .replace(/CHA2DS2-VASc (\d+) \(>=7\)/g,'CHA₂DS₂-VASc $1')
+      .replace(/CHA2DS2-VASc/g,'CHA₂DS₂-VASc');
+    const reasons=a4Reason(a.reasons.join(', ')) || 'ต้องทบทวนข้อมูล';
     const indicationName=LABEL[p.indication]||'-';
     const valveName=p.indication==='mechanical'?' ('+selectedValues('preValveAt').map(x=>x[0].toUpperCase()+x.slice(1)).join(' + ')+')':'';
     const anticoagName=p.anticoagulant==='warfarin'
@@ -784,10 +789,10 @@
       :'Apixaban '+(p.apixDose||'-')+' mg BID';
     const bridgingIsYes=p.anticoagulant==='warfarin' && p.bridgeChoice==='yes';
     const isWarfarin=p.anticoagulant==='warfarin';
-    const bridgeReason=bridgingRationale(p,a);
+    const bridgeReason=a4Reason(bridgingRationale(p,a));
     const hdr='<h2 class="pre-print-heading">แผนการจัดการยาต้านการแข็งตัวของเลือดก่อนผ่าตัด</h2>'+
       '<div class="pre-print-subheading">PERI-OPERATIVE ANTICOAGULANT MANAGEMENT</div>'+
-      '<div class="pre-print-patient">'+
+      '<div class="pre-print-patient pre-a4-patient">'+
       '<div class="pre-header-row pre-header-patient"><strong>ชื่อผู้ป่วย:</strong> '+esc(val('preName')||'........................................................')+
       ' <span class="pre-header-age"><strong>อายุ:</strong> '+esc(val('preAge')||'____')+' ปี</span></div>'+
       '<div class="pre-header-row pre-header-procedure"><strong>Operation:</strong> '+esc(p.procedure||'-')+
@@ -803,7 +808,7 @@
       ' <span class="pre-header-separator">|</span> <strong>CrCl:</strong> '+esc(p.crCl||'-')+' mL/min</div>'+
       '</div>';
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>วันที่</th><th>ยา</th><th>แผนการรักษา / คำแนะนำ</th></tr></thead><tbody>'+
-      rows.map(r=>printableRow(r,p)).join('')+'</tbody></table>';
+      rows.map(r=>printableRow(r,p,v)).join('')+'</tbody></table>';
     const safetyNotes=[];
     // The Day -1 calendar already carries the relevant INR/neuraxial check.
     if(p.anticoagulant==='warfarin'&&v.action==='hold'&&p.neuraxial==='yes' &&
@@ -822,6 +827,7 @@
     const notes=noteBody?'<div class="pre-print-notes">'+noteBody+'</div>':'';
     const footer='<footer class="pre-print-footer">'+
       '<div class="pre-signature-block">'+
+      '<div class="pre-signature-write-zone" aria-hidden="true"></div>'+
       '<div class="pre-signature-line">ลงชื่อ ........................................................</div>'+
       '<div class="pre-signature-name">('+esc(val('prePhysician')||'........................................................')+')</div>'+
       '<div class="pre-signature-date">วันที่ ............ / ............ / ............</div>'+
