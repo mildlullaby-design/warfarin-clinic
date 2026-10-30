@@ -80,7 +80,7 @@
   '<div class="field"><label for="preRheumaticMS">Rheumatic mitral stenosis?</label><select id="preRheumaticMS"><option value="">เลือก</option><option value="no">No</option><option value="yes">Yes</option><option value="unknown">Unknown</option></select></div><div class="field"><label for="preAFClot">เคยเกิด thrombosis ระหว่างหยุด anticoagulant?</label><select id="preAFClot"><option value="">เลือก</option><option value="no">ไม่เคย</option><option value="yes">เคย</option><option value="unknown">ไม่ทราบ</option></select></div></div></div>'+
   '<div id="preValveExtra" class="hidden"><p>Mechanical valve position (เลือกได้หลายตำแหน่ง)</p><div class="pre-checkrow">'+
   '<label><input type="checkbox" name="preValveAt" value="aortic"> Aortic</label><label><input type="checkbox" name="preValveAt" value="mitral"> Mitral</label><label><input type="checkbox" name="preValveAt" value="tricuspid"> Tricuspid</label><label><input type="checkbox" name="preValveAt" value="unknown"> Unknown</label></div>'+
-  '<div class="field"><label for="preValveGeneration">Valve generation (AVR)</label><select id="preValveGeneration"><option value="">Unknown</option><option value="modern">Modern bileaflet</option><option value="old">Caged-ball / older tilting-disc</option></select></div><div class="field"><label for="preValveStroke">Stroke/TIA</label><select id="preValveStroke"><option value="">เลือก</option><option value="none">ไม่มี</option><option value="recent">ภายใน 3 เดือน</option><option value="remote">มากกว่า 3 เดือน</option><option value="unknown">ไม่ทราบ</option></select></div><label>Additional prothrombotic factors — ESC 2025 (optional)</label><div class="pre-checkrow">'+
+  '<div class="field"><label for="preValveGeneration">Valve generation (AVR)</label><select id="preValveGeneration"><option value="unknown">Unknown / ไม่ทราบ (ไม่บังคับ)</option><option value="modern">Modern bileaflet</option><option value="old">Caged-ball / older tilting-disc</option></select></div><div class="field"><label for="preValveStroke">Stroke/TIA</label><select id="preValveStroke"><option value="">เลือก</option><option value="none">ไม่มี</option><option value="recent">ภายใน 3 เดือน</option><option value="remote">มากกว่า 3 เดือน</option><option value="unknown">ไม่ทราบ</option></select></div><label>Additional prothrombotic factors — ESC 2025 (optional)</label><div class="pre-checkrow">'+
   '<label><input type="checkbox" name="preValveFactor" value="recent"> Major thrombotic event ภายใน 12 เดือน</label>'+
   '<label><input type="checkbox" name="preValveFactor" value="lvef"> LVEF &lt;35%</label>'+
   '<label><input type="checkbox" name="preValveFactor" value="ms"> AF with significant MS</label>'+
@@ -99,6 +99,11 @@
   const guideline=document.createElement('div');
   guideline.id='preRiskGuideline';guideline.className='pre-guideline-summary';
   risk.append(guideline);
+  // Put the risk classification AFTER all clinical input and factor choices.
+  const riskResult=$('preThromboticResult');
+  riskResult.classList.add('pre-thrombotic-result');
+  $('preBridgeFields').insertAdjacentElement('afterend',riskResult);
+  riskResult.setAttribute('role','status');
   function updateGuidelineSummary(){
     const ind=val('preIndication');
     const ref='https://journal.chestnet.org/article/S0012-3692%2822%2901359-9/abstract';
@@ -305,8 +310,14 @@
   }
   function showThrombotic(){
     const a=thromboticAssessment(),el=$('preThromboticResult');
-    if(el)el.textContent='Thrombotic risk: '+a.level.toUpperCase()+' | '+(a.reasons.join(', ')||'รอข้อมูล')+
-      (a.notices.length?' | '+a.notices.join('; '):'');
+    if(!el)return;
+    const level=a.level==='review'?'NEEDS REVIEW':a.level.toUpperCase();
+    const reasons=a.reasons.length?a.reasons.map(x=>'<li>'+esc(x)+'</li>').join(''):'<li>กรอกข้อมูล indication เพื่อประเมิน</li>';
+    el.innerHTML='<div class="pre-thrombotic-heading"><span>Thrombotic risk assessment</span>'+
+      '<strong class="pre-risk-level pre-risk-'+esc(a.level)+'">'+esc(level)+'</strong></div>'+
+      '<div class="pre-risk-reasons"><b>Supporting reasons</b><ul>'+reasons+'</ul></div>'+
+      (a.notices.length?'<p class="pre-risk-notices">'+esc(a.notices.join('; '))+'</p>':'')+
+      '<small>แสดงเหตุผลประกอบ ไม่ใช่คำสั่งให้ Bridging อัตโนมัติ</small>';
   }
   $('preTargetInr').addEventListener('change',()=>{
     targetWrap.classList.toggle('hidden',val('preTargetInr')!=='other');
@@ -342,15 +353,17 @@
     }
     if(ind==='mechanical'){
       if(!selectedValues('preValveAt').length)b.push('ระบุตำแหน่ง Mechanical valve');
-      if(selectedValues('preValveAt').includes('aortic')&&!val('preValveGeneration'))b.push('Aortic MHV: ต้องระบุ valve generation');
       if(!val('preValveStroke'))b.push('Mechanical valve: ต้องระบุ Stroke/TIA');
     }
     if(ind==='vte'){
       for(const [id,title] of [['preVTETime','VTE timing'],['preVTEType','DVT / PE'],['preVTERecur','Recurrent VTE'],['preVTEThromb','Thrombophilia'],['preVTECancer','Cancer history'],['preVTEClot','Previous perioperative VTE']])
         if(!val(id))b.push('กรอก '+title);
-      if(['lt1','lt3'].includes(val('preVTETime')))b.push('Recent VTE: elective surgery timing and interruption need individualized physician review.');
+      // Recent VTE is a risk flag, not a missing Time since last VTE field.
+      // Show postponement/review advice in the risk summary, not as a blocking input error.
     }
-    if(ind&&thromboticAssessment().level==='review')b.push('Thrombotic risk needs review / information incomplete');
+    // Unknown aortic generation is allowed; mark risk as Review rather than falsely Low.
+    if(ind&&thromboticAssessment().level==='review' && !(ind==='mechanical' && selectedValues('preValveAt').includes('aortic') && ['unknown',''].includes(val('preValveGeneration')) && val('preValveStroke') && selectedValues('preValveAt').length))
+      b.push('Thrombotic risk needs review / information incomplete');
     if(p.anticoagulant==='warfarin'&&(!Number.isFinite(num('preWeekly'))||num('preWeekly')<=0))b.push('Warfarin: ระบุ Weekly dose');
     if(p.anticoagulant==='warfarin'&&!validTargetInr())b.push('Target INR: เลือก 2-3, 2.5-3.5 หรือกรอกช่วงตัวเลขที่ถูกต้อง');
     if(p.anticoagulant==='warfarin'&&dailyValues()==='incomplete')b.push('Warfarin regimen รายวัน: ต้องกรอกครบทั้ง 7 วัน หรือเว้นว่างทั้งหมด');
@@ -381,7 +394,7 @@
     if(m.includes('aortic mhv'))return 'preValveGeneration';
     if(m.includes('mechanical valve:'))return 'preValveStroke';
     if(m.includes('mechanical valve'))return 'preValveAt';
-    if(m.includes('vte timing')||m.includes('recent vte'))return 'preVTETime';
+    if(m.includes('vte timing'))return 'preVTETime';
     if(m.includes('dvt / pe'))return 'preVTEType';
     if(m.includes('recurrent vte'))return 'preVTERecur';
     if(m.includes('thrombophilia'))return 'preVTEThromb';
