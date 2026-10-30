@@ -120,3 +120,44 @@ test('CHA2DS2-VASc score alone cannot satisfy AF bridge rationale',()=>{
   assert.match(d.getElementById('preSafety').textContent,/CHA2DS2-VASc อย่างเดียวไม่เพียงพอ/);
   dom.window.close();
 });
+
+test('Complete AF bridging workflow: selected reason and actual Enoxaparin mg/dose allow Final A4',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  function set(id,v){const x=d.getElementById(id);x.value=v;x.dispatchEvent(new dom.window.Event('input',{bubbles:true}));x.dispatchEvent(new dom.window.Event('change',{bubbles:true}));}
+  set('preDrug','warfarin');set('preIndication','af');
+  set('preProcedure','Total knee arthroplasty');set('preDate','2026-11-12');
+  set('preAge','65');set('preSex','male');set('preWeight','70');set('preCr','1');
+  set('preWeekly','20');set('preTargetInr','2-3');set('preNeuraxial','no');
+  set('preScore','7');set('preAFStroke','recent');set('preRheumaticMS','yes');set('preAFClot','no');
+  set('preBridge','yes');
+  const option=[...d.querySelectorAll('#preAFBridgeReasonList input')].find(x=>x.value.includes('Recent stroke/TIA'));
+  assert.ok(option);option.click();assert.equal(option.checked,true);
+  set('preLmwhDose','70');
+  assert.equal(d.getElementById('preLmwhDose').value,'70');
+  assert.match(d.getElementById('preLmwhVolume').textContent,/70 mg/);
+  d.getElementById('prePreview').click();
+  assert.equal(d.getElementById('prePrint').disabled,false,'valid AF bridging selection must allow finalization, blockers: '+d.getElementById('preSafety').textContent);
+  assert.match(d.getElementById('preOPDNote').value,/Bridging: Yes \(Recent stroke\/TIA/);
+  assert.match(d.getElementById('preOPDNote').value,/Enoxaparin 70 mg/);
+  dom.window.close();
+});
+test('AF reason check remains selected when other non-risk field changed',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const set=(id,v)=>{let e=d.getElementById(id);e.value=v;e.dispatchEvent(new dom.window.Event('input',{bubbles:true}));};
+  set('preDrug','warfarin');set('preIndication','af');set('preScore','7');set('preAFStroke','recent');set('preRheumaticMS','yes');
+  set('preBridge','yes');
+  const cb=[...d.querySelectorAll('#preAFBridgeReasonList input')].find(x=>x.value.includes('Recent stroke'));
+  assert.ok(cb);cb.click();assert.equal(cb.checked,true);
+  set('preWeight','65');
+  assert.equal([...d.querySelectorAll('#preAFBridgeReasonList input')].find(x=>x.value.includes('Recent stroke')).checked,true);
+  dom.window.close();
+});
+test('Known VTE timing and optional mechanical unknown generation survive navigation',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  function set(id,v){const x=d.getElementById(id);x.value=v;x.dispatchEvent(new dom.window.Event('change',{bubbles:true}));}
+  set('preDrug','warfarin');set('preIndication','vte');set('preVTETime','lt3');set('preVTEType','pe');
+  assert.equal(d.getElementById('preVTETime').value,'lt3');
+  set('preIndication','mechanical');set('preValveGeneration','unknown');set('preValveStroke','none');
+  assert.equal(d.getElementById('preValveGeneration').value,'unknown');
+  dom.window.close();
+});
