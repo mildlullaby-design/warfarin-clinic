@@ -1342,3 +1342,29 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
   #prePrintExport .pre-signature-date{margin-top:2mm!important}
   #prePrintExport .pre-reference-line{display:block;font-size:8pt!important;line-height:1.2!important;margin-top:4mm!important}
 }
+
+/* A4 header line separation: each clinical group is a distinct row, in preview and print. */
+#prePrintSurface .pre-print-patient .pre-header-row,
+#prePrintExport .pre-print-patient .pre-header-row {
+  display:block!important;
+  margin:0 0 2mm!important;
+  line-height:1.35!important;
+}
+#prePrintSurface .pre-print-patient .pre-header-procedure,
+#prePrintExport .pre-print-patient .pre-header-procedure {
+  display:flex!important;
+  justify-content:space-between!important;
+  align-items:baseline!important;
+  flex-wrap:nowrap!important;
+  gap:5mm!important;
+}
+#prePrintSurface .pre-print-patient .pre-header-row:last-child,
+#prePrintExport .pre-print-patient .pre-header-row:last-child {
+  margin-bottom:0!important;
+}
+#prePrintSurface .pre-print-patient .pre-header-bridge,
+#prePrintExport .pre-print-patient .pre-header-bridge {
+  margin-top:2.5mm!important;
+  margin-bottom:2.5mm!important;
+  padding:1mm 0!important;
+}
