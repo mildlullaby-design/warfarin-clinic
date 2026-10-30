@@ -333,3 +333,61 @@ test('Known operation date calculates calendar as before while optional HN may b
   assert.equal(dateCells[14],'11/11/2569');
   dom.window.close();
 });
+
+test('Unknown operation date checkbox clears a previously entered date and prints blank date fields without missing-date error',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const date=d.getElementById('preDate'),unknown=d.getElementById('preDateUnknown');
+  const set=(id,value)=>{
+    const e=d.getElementById(id);
+    e.value=value;
+    e.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  };
+  set('preDrug','warfarin');set('preIndication','af');
+  set('preProcedure','Thyroidectomy');set('preDate','2026-11-04');
+  set('preAge','67');set('preWeight','58');set('preCrCl','49');
+  set('preWeekly','22');set('preTargetInr','2-3');
+  set('preScore','7');set('preAFStroke','none');
+  set('preRheumaticMS','yes');set('preAFClot','no');
+  assert.equal(date.value,'2026-11-04');
+  unknown.click();
+  assert.equal(unknown.checked,true);
+  assert.equal(date.value,'','checking unknown date must clear date');
+  assert.equal(date.disabled,true);
+  d.getElementById('prePreview').click();
+  const preview=d.getElementById('prePrintSurface');
+  assert.equal(preview.querySelector('.pre-header-date').textContent.trim(),'วันที่:');
+  assert.equal(preview.querySelectorAll('.pre-print-grid tbody .pre-a4-date').length,15);
+  assert.ok([...preview.querySelectorAll('.pre-print-grid tbody .pre-a4-date')].every(c=>c.textContent===''));
+  assert.equal(d.getElementById('prePrint').disabled,true,'never allow undated final print');
+  assert.match(d.getElementById('preStatus').textContent,/ยังไม่ทราบวันผ่าตัด/);
+  assert.doesNotMatch(d.getElementById('preSafety').textContent,/Operation date missing: DRAFT only, no final dated orders/);
+  assert.match(d.getElementById('preSafety').textContent,/วันที่ใน A4 เว้นว่างทุกแถว/);
+  assert.doesNotMatch(d.getElementById('preOPDNote').value,/Operation date missing: DRAFT only, no final dated orders/);
+  assert.match(d.getElementById('preOPDNote').value,/DRAFT - ยังไม่ทราบวันผ่าตัด/);
+  d.getElementById('preBack').click();
+  unknown.click();
+  assert.equal(date.disabled,false,'unchecking unknown date should restore date input');
+  assert.equal(date.value,'','must not revive stale operation date');
+  set('preDate','2026-11-04');
+  d.getElementById('prePreview').click();
+  assert.equal(d.getElementById('prePrintSurface').querySelector('.pre-header-date').textContent.trim(),'วันที่: 04/11/2569');
+  dom.window.close();
+});
+test('Leaving operation date blank without unknown-date choice still requests review',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  assert.equal(d.getElementById('preDateUnknown').checked,false);
+  assert.equal(d.getElementById('preDate').disabled,false);
+  d.getElementById('prePreview').click();
+  assert.match(d.getElementById('preSafety').textContent,/Operation date missing: DRAFT only, no final dated orders/);
+  assert.equal(d.getElementById('prePrint').disabled,true);
+  dom.window.close();
+});
+test('New patient resets unknown-date checkbox and re-enables date',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  d.getElementById('preDateUnknown').click();
+  assert.equal(d.getElementById('preDate').disabled,true);
+  d.getElementById('preNew').click();
+  assert.equal(d.getElementById('preDateUnknown').checked,false);
+  assert.equal(d.getElementById('preDate').disabled,false);
+  dom.window.close();
+});
