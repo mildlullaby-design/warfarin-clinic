@@ -18,6 +18,28 @@ test('Recent PE high',()=>assert.equal(risk({indication:'vte',vteTiming:'lt3',vt
 test('VTE >12m recurrent moderate',()=>assert.equal(risk({indication:'vte',vteTiming:'gt12',vteRecurrent:'yes',vteThrombophilia:'none',vteCancer:'none'}).level,'moderate'));
 test('VTE >12m without risk factors low',()=>assert.equal(risk({indication:'vte',vteTiming:'gt12',vteRecurrent:'no',vteThrombophilia:'none',vteCancer:'none'}).level,'low'));
 
+test('Prior VTE during anticoagulant interruption is not low risk even when VTE >12 months',()=>{
+  const p={indication:'vte',vteTiming:'gt12',vteRecurrent:'no',
+    vteThrombophilia:'none',vteCancer:'none',priorPeriopClot:'yes'};
+  const x=risk(p);
+  assert.equal(x.level,'high');
+  assert.ok(x.reasons.includes('VTE during previous interruption'));
+  assert.ok(x.notices.some(s=>s.includes('clinical override')));
+  assert.doesNotMatch(x.reasons.join(' '),/\(review\)/i);
+  assert.equal(x.complete,true);
+  assert.equal(risk({...p,priorPeriopClot:'no'}).level,'low');
+});
+test('Prior VTE during interruption raises moderate category to high and does not force bridging',()=>{
+  const p={indication:'vte',vteTiming:'3to12',vteRecurrent:'no',
+    vteThrombophilia:'none',vteCancer:'none',priorPeriopClot:'yes'};
+  assert.equal(risk(p).level,'high');
+  assert.equal(risk({...p,priorPeriopClot:'no'}).level,'moderate');
+  // Risk classification is descriptive; the treatment plan still relies on explicit choice.
+  const plan=C.plan({anticoagulant:'warfarin',indication:'vte',procedure:'Thyroidectomy',
+    bleedingRisk:'high',operationDate:'2026-11-12',weeklyDose:21,
+    crCl:75,weightKg:70,bridgeChoice:'no',priorPeriopClot:'yes'});
+  assert.equal(plan.bridging,false);
+});
 test('VTE date-category selection does not generate a missing-input blocker',()=>{
   const ui=require('node:fs').readFileSync(require('node:path').join(__dirname,'preop-ui.js'),'utf8');
   assert.match(ui,/\['preVTETime','VTE timing'\]/);
