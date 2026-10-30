@@ -281,7 +281,7 @@ test('Free-text AF rationale is acknowledged even without a selected checkbox',(
   dom.window.close();
 });
 
-test('Optional HN appears after patient name; absent operation date leaves 15 writable A4 date cells and Draft-only print',()=>{
+test('Optional HN appears after name; absent operation date leaves all 15 A4 date cells blank and Draft-only print',()=>{
   const dom=openPreop(),d=dom.window.document;
   const put=(id,value)=>{
     const e=d.getElementById(id);
@@ -300,11 +300,11 @@ test('Optional HN appears after patient name; absent operation date leaves 15 wr
   d.getElementById('prePreview').click();
   const preview=d.getElementById('prePrintSurface');
   assert.match(preview.querySelector('.pre-header-patient').textContent,/ชื่อผู้ป่วย:.*HN: 01234567.*อายุ:/);
-  assert.match(preview.querySelector('.pre-header-date').textContent,/___\/___\/____/);
+  assert.equal(preview.querySelector('.pre-header-date').textContent.trim(),'วันที่:');
   assert.match(preview.querySelector('.pre-a4-undated-notice').textContent,/กรอกวันผ่าตัดและวันที่ทุกแถว/);
   const cells=[...preview.querySelectorAll('.pre-print-grid tbody .pre-a4-date')];
   assert.equal(cells.length,15);
-  for(const cell of cells)assert.equal(cell.textContent,'___/___/____');
+  for(const cell of cells)assert.equal(cell.textContent,'');
   assert.equal(d.getElementById('prePrint').disabled,true,'no undated Final plan');
   assert.ok(d.getElementById('preDraftPrint'));
   assert.match(d.getElementById('preSafety').textContent,/Operation date missing/);
