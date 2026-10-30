@@ -564,6 +564,18 @@
     const p=input(),v=core.plan(p),extra=extraBlockers(p);
     return {p,v,blockers:[...v.blockers,...extra]};
   }
+  // Shared clinical rationale for A4 and HOSxP. Do not invent a physician approval statement.
+  // Thrombotic risk factors support the decision but never automatically select bridging.
+  function bridgingRationale(p,a){
+    const entered=val('preAFBridgeRationale').trim();
+    if(p.anticoagulant==='apixaban')return 'DOAC: ไม่แนะนำ routine therapeutic LMWH bridging';
+    if(entered && p.indication==='af' && p.bridgeChoice==='yes')return entered;
+    if(p.bridgeChoice==='yes')return a.reasons.join(', ') || 'ต้องระบุเหตุผลในการ bridging';
+    if(p.indication==='af')return 'AF: ไม่แนะนำ routine bridging (CHEST 2022)';
+    if(p.indication==='vte')return 'VTE: ไม่แนะนำ routine bridging เป็นหลัก (CHEST 2022)';
+    if(a.level==='low')return 'Low thrombotic risk';
+    return 'ต้องระบุเหตุผล No bridging เฉพาะราย';
+  }
   const noteText=(p,v,blockers)=>{
     const a=thromboticAssessment(),sd=day=>p.operationDate?core.shiftDate(p.operationDate,day):'';
     const dt=x=>x?x.slice(8,10)+'/'+x.slice(5,7)+'/'+String(+x.slice(0,4)+543).slice(-2):'-';
@@ -574,7 +586,7 @@
       'Thrombotic risk: '+risk+' ('+(a.reasons.join(', ')||'รอข้อมูล')+')'];
     if(p.anticoagulant==='warfarin'){
       out.push('Plan: '+(v.action==='hold'&&Number.isInteger(v.holdDays)?'หยุด Warfarin '+dt(sd(-v.holdDays))+'-'+dt(sd(-1)):v.action==='continue'?'Continue Warfarin':'รอ physician review'));
-      out.push('Bridging: '+(p.bridgeChoice==='yes'?'Yes':'No')+' ('+(val('preAFBridgeRationale').trim()||(p.bridgeChoice==='yes'?'physician-reviewed individual decision':'ไม่ทำ routine bridging ตาม risk assessment'))+')');
+      out.push('Bridging: '+(p.bridgeChoice==='yes'?'Yes':'No')+' ('+bridgingRationale(p,a)+')');
       if(p.bridgeChoice==='yes')out.push((hasSafeLmwh(p,v)?'Enoxaparin '+Number(v.dose.mg.toFixed(1))+' mg SC q12h':'Enoxaparin dose pending')+' วันที่ '+dt(sd(-3))+'-'+dt(sd(-2))+', hold 24 hr ก่อนผ่าตัด');
       out.push('Post-op: พิจารณา restart Warfarin เมื่อไม่มี bleeding/hemostasis ดี, นัด INR หลังเริ่มยา 4 วัน');
     }else{
@@ -623,13 +635,7 @@
       :'Apixaban '+(p.apixDose||'-')+' mg BID';
     const bridgingIsYes=p.anticoagulant==='warfarin' && p.bridgeChoice==='yes';
     const isWarfarin=p.anticoagulant==='warfarin';
-    const afRationale=val('preAFBridgeRationale').trim();
-    const bridgeReason=isWarfarin
-      ?(bridgingIsYes
-        ?(afRationale?afRationale:'แพทย์ยืนยันหลังประเมิน thrombotic/bleeding risk: '+reasons)
-        :(a.level==='low'?'Low thrombotic risk; ไม่ทำ routine bridging':
-          'แพทย์เลือก No bridging หลังประเมิน thrombotic/bleeding risk ('+reasons+')'))
-      :'Apixaban: ไม่แนะนำ routine therapeutic LMWH bridging';
+    const bridgeReason=bridgingRationale(p,a);
     const hdr='<h2 class="pre-print-heading">แผนการจัดการยาต้านการแข็งตัวของเลือดก่อนผ่าตัด</h2>'+
       '<div class="pre-print-subheading">PERI-OPERATIVE ANTICOAGULANT MANAGEMENT</div>'+
       '<div class="pre-print-patient">'+
