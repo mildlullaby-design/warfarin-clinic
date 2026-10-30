@@ -121,12 +121,15 @@
       else if(thromb==='nonsevere')add('Non-severe thrombophilia');
       if(cancer==='high')add('Active cancer with high VTE risk');
       else if(cancer==='other')add('Other active cancer');
-      if(p.priorPeriopClot==='yes')add('VTE during previous interruption (review)');
+      if(p.priorPeriopClot==='yes')add('VTE during previous interruption');
       if(!['yes','no'].includes(recur))unknown('Recurrence history unknown');
       if(!['none','aps','severe','nonsevere'].includes(thromb))unknown('Thrombophilia history unknown');
       if(!['none','high','other','history'].includes(cancer))unknown('Cancer history unknown');
-      if(['lt1','lt3'].includes(timing)||['aps','severe'].includes(thromb)||cancer==='high')level='high';
+      // A prior VTE on anticoagulant interruption is a high-risk clinical override,
+      // not an explicit stand-alone item in CHEST 2022 Table 1. It never orders bridging.
+      if(['lt1','lt3'].includes(timing)||['aps','severe'].includes(thromb)||cancer==='high'||p.priorPeriopClot==='yes')level='high';
       else if(complete)level=(timing==='3to12'||recur==='yes'||thromb==='nonsevere'||cancer==='other')?'moderate':'low';
+      if(p.priorPeriopClot==='yes')notices.push('High-risk clinical override: prior VTE during anticoagulant interruption; review the previous event and bleeding risk, not automatic LMWH bridging');
       if(['lt1','lt3'].includes(timing))notices.push('Recent VTE: consider postponing elective surgery; physician review required');
     } else unknown('Indication unknown');
     return {level,complete,reasons,notices,source};
