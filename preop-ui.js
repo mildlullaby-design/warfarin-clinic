@@ -349,6 +349,20 @@
     const manual=val('preAFBridgeRationale').trim();
     return {selected,manual,combined:[...selected,...(manual?[manual]:[])].join(', ')};
   }
+  // Live, read-only recap of the procedural risk actually selected in Section 01.
+  // No independent classification or modification of anticoagulation decisions.
+  function updateBleedingRiskSummary(){
+    const el=$('preBleedingRiskResult');if(!el)return;
+    const selected=val('preBleed'),procedure=val('preProcedure');
+    const risk=selected?(LABEL[selected]||selected):'Unclassified — Needs review';
+    const status=selected?(mappedProcedure?'จาก Procedure Bleeding Risk Table':
+      checked('preOtherVerified')?'แพทย์ยืนยัน bleeding risk ที่เลือกเอง':'เลือกเอง — รอยืนยันก่อน Final')
+      :'ยังไม่ได้เลือกหรือยืนยัน bleeding risk';
+    el.innerHTML='<div class="pre-ui-risk-summary-heading">'+
+      '<strong>Procedure bleeding risk</strong><strong class="pre-ui-risk-summary-value">'+esc(risk)+'</strong></div>'+
+      '<p class="pre-ui-risk-summary-context"><strong>Operation:</strong> '+esc(procedure||'ยังไม่ระบุหัตถการ')+'</p>'+
+      '<small>'+esc(status)+'</small>';
+  }
   function showThrombotic(){
     const a=thromboticAssessment(),el=$('preThromboticResult');
     if(!el)return;
@@ -505,7 +519,7 @@
   }
   function switchFields(){
     const drug=val('preDrug'),ind=val('preIndication'),bridge=val('preBridge')==='yes';
-    updateGuidelineSummary();showThrombotic();refreshAfBridgeReasons();refreshLmwhStatus();
+    updateGuidelineSummary();showThrombotic();updateBleedingRiskSummary();refreshAfBridgeReasons();refreshLmwhStatus();
     showAsra();
     $('preWarfarinFields').classList.toggle('hidden',drug!=='warfarin');
     targetWrap.classList.toggle('hidden',val('preTargetInr')!=='other');
@@ -1085,20 +1099,15 @@
     riskSection.append($('preClinicalRisk'));
     restructureMechanicalValve();
 
-    const bridging=assessmentSection('04','Bridging Plan','ตัดสินใจแยกจาก thrombotic risk · ไม่สั่ง bridging อัตโนมัติ');
-    layout.append(bridging);
-    const bridgeDecision=assessmentGrid();
-    moveExistingField('preBridge',bridgeDecision);
-    bridging.append(bridgeDecision,$('preBridgeFields'));
-    const apixBridgeInfo=document.createElement('p');
-    apixBridgeInfo.id='preApixBridgeInfo';
-    apixBridgeInfo.className='pre-ui-explainer hidden';
-    apixBridgeInfo.textContent='Apixaban: ไม่แนะนำ routine therapeutic LMWH bridging';
-    bridging.append(apixBridgeInfo);
-
-    const summary=assessmentSection('05','Risk Summary & Reference','แสดงระดับความเสี่ยงและเหตุผลก่อน Generate Plan');
+    // Review both entered risk assessments BEFORE the therapeutic LMWH decision.
+    const summary=assessmentSection('04','Risk Summary & Reference','สรุป Bleeding risk และ Thrombotic risk ที่กรอกไว้ ก่อนตัดสินใจ Bridging');
     layout.append(summary);
-    summary.append($('preThromboticResult'));
+    const bleedingSummary=document.createElement('div');
+    bleedingSummary.id='preBleedingRiskResult';
+    bleedingSummary.className='pre-ui-bleeding-summary';
+    bleedingSummary.setAttribute('role','status');
+    bleedingSummary.setAttribute('aria-live','polite');
+    summary.append(bleedingSummary,$('preThromboticResult'));
     const refDetails=document.createElement('details');
     refDetails.id='preRiskReference';
     refDetails.className='pre-ui-reference';
@@ -1110,8 +1119,19 @@
     guidelineDetails.innerHTML='<summary>Guideline consideration · Bridging review</summary>';
     guidelineDetails.append($('preRiskGuideline'));
     summary.append(guidelineDetails);
+
+    const bridging=assessmentSection('05','Bridging Plan','ใช้ Risk Summary ด้านบนประกอบการตัดสินใจ · ไม่สั่ง bridging อัตโนมัติ');
+    layout.append(bridging);
+    const bridgeDecision=assessmentGrid();
+    moveExistingField('preBridge',bridgeDecision);
+    bridging.append(bridgeDecision,$('preBridgeFields'));
+    const apixBridgeInfo=document.createElement('p');
+    apixBridgeInfo.id='preApixBridgeInfo';
+    apixBridgeInfo.className='pre-ui-explainer hidden';
+    apixBridgeInfo.textContent='Apixaban: ไม่แนะนำ routine therapeutic LMWH bridging';
+    bridging.append(apixBridgeInfo);
     const actions=inputScreen.querySelector('.pre-actions');
-    if(actions){actions.classList.add('pre-ui-final-actions');summary.append(actions);}
+    if(actions){actions.classList.add('pre-ui-final-actions');bridging.append(actions);}
     // Section cards are already attached to the live document above.
     // The old source grid is empty after fields are moved; never leave a blank gap.
     if(first && !first.children.length)first.remove();
