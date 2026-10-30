@@ -296,7 +296,7 @@
     return core.assessThromboticRisk({
       indication:ind,cha2ds2Vasc:num('preScore'),
       strokeTiming:ind==='mechanical'?val('preValveStroke'):val('preAFStroke'),
-      rheumaticMS:val('preRheumaticMS'),priorPeriopClot:val('preAFClot'),
+      rheumaticMS:val('preRheumaticMS'),
       valvePositions:selectedValues('preValveAt'),valveGeneration:val('preValveGeneration'),
       valveFactors:selectedValues('preValveFactor'),vteTiming:val('preVTETime'),
       vteRecurrent:val('preVTERecur'),vteThrombophilia:val('preVTEThromb'),
