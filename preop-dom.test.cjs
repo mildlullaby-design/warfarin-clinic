@@ -454,3 +454,68 @@ test('VTE history of clot during previous interruption updates visible risk from
   assert.match(table,/prior VTE during interruption/);
   dom.window.close();
 });
+
+test('VTE bridge reasons are selectable with manual rationale and appear in A4 / HOSxP',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const set=(id,value)=>{
+    const e=d.getElementById(id);e.value=value;
+    e.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  };
+  set('preDrug','warfarin');set('preIndication','vte');
+  set('preProcedure','Thyroidectomy');set('preDate','2026-11-12');
+  set('preAge','67');set('preWeight','70');set('preCrCl','75');
+  set('preWeekly','21');set('preTargetInr','2-3');set('preNeuraxial','no');
+  set('preVTETime','gt12');set('preVTEType','dvt');set('preVTERecur','no');
+  set('preVTEThromb','none');set('preVTECancer','none');set('preVTEClot','yes');
+  const risk=d.getElementById('preThromboticResult').textContent;
+  assert.match(risk,/Guideline baseline:\s*LOW/);
+  assert.match(risk,/Clinical override:\s*HIGH concern/);
+  assert.equal(d.getElementById('preBridge').value,'no','history must not auto-select bridging');
+  set('preBridge','yes');
+  assert.equal(d.getElementById('preVTEBridgeOverride').classList.contains('hidden'),false);
+  assert.equal(d.getElementById('preAFBridgeOverride').classList.contains('hidden'),true);
+  const options=[...d.querySelectorAll('#preVTEBridgeReasonList input[name="preVTEBridgeReason"]')];
+  const low=options.find(x=>x.value==='VTE >12 mo');
+  const exceptional=options.find(x=>x.value==='VTE during previous interruption');
+  assert.ok(low&&exceptional);
+  assert.ok(options.every(x=>!x.checked),'supporting reasons should never auto-tick');
+  d.getElementById('prePreview').click();
+  assert.match(d.getElementById('preSafety').textContent,/VTE: CHEST 2022/);
+  assert.equal(d.getElementById('prePrint').disabled,true);
+  d.getElementById('preBack').click();
+  low.click();
+  d.getElementById('prePreview').click();
+  assert.match(d.getElementById('preSafety').textContent,/VTE >12 เดือนอย่างเดียว/);
+  assert.equal(d.getElementById('prePrint').disabled,true);
+  d.getElementById('preBack').click();
+  exceptional.click();
+  assert.match(d.getElementById('preVTEBridgeSelectedStatus').textContent,/2 ข้อ/);
+  d.getElementById('prePreview').click();
+  assert.equal(d.getElementById('prePrint').disabled,false,
+    'valid history and selected rationale should allow final; blockers: '+d.getElementById('preSafety').textContent);
+  assert.match(d.getElementById('preOPDNote').value,/Thrombotic risk: High \[baseline low; clinical override\]/);
+  assert.match(d.getElementById('preOPDNote').value,/Bridging: Yes \(VTE >12 mo, VTE during previous interruption\)/);
+  assert.match(d.getElementById('prePrintSurface').textContent,/Bridging:\s*Yes\s*—\s*VTE >12 mo, VTE during previous interruption/);
+  dom.window.close();
+});
+test('VTE bridging selected reasons remain on unrelated changes and disappear when supporting history changes',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const set=(id,value)=>{
+    const e=d.getElementById(id);e.value=value;
+    e.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  };
+  set('preDrug','warfarin');set('preIndication','vte');
+  set('preVTETime','gt12');set('preVTERecur','no');
+  set('preVTEThromb','none');set('preVTECancer','none');set('preVTEClot','yes');
+  set('preBridge','yes');
+  const option=[...d.querySelectorAll('#preVTEBridgeReasonList input')].find(x=>x.value==='VTE during previous interruption');
+  assert.ok(option);option.click();
+  assert.equal(option.checked,true);
+  set('preWeight','67');
+  const saved=[...d.querySelectorAll('#preVTEBridgeReasonList input')].find(x=>x.value==='VTE during previous interruption');
+  assert.equal(saved.checked,true);
+  set('preVTEClot','no');
+  assert.equal([...d.querySelectorAll('#preVTEBridgeReasonList input')].some(x=>x.value==='VTE during previous interruption'),false);
+  assert.equal(d.getElementById('preVTEBridgeSelectedStatus').dataset.selected,'0');
+  dom.window.close();
+});
