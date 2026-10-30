@@ -18,4 +18,4 @@ jobs:
           node --check preop-core.js
           node --check preop-ui.js
       - name: Run clinical logic acceptance tests
-        run: node --test preop-core.test.cjs
+        run: node --test preop-core.test.cjs preop-risk.test.cjs
