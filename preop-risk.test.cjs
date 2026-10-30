@@ -17,3 +17,23 @@ test('Valve recent stroke high without exact date',()=>assert.equal(risk({indica
 test('Recent PE high',()=>assert.equal(risk({indication:'vte',vteTiming:'lt3',vteRecurrent:'no',vteThrombophilia:'none',vteCancer:'none'}).level,'high'));
 test('VTE >12m recurrent moderate',()=>assert.equal(risk({indication:'vte',vteTiming:'gt12',vteRecurrent:'yes',vteThrombophilia:'none',vteCancer:'none'}).level,'moderate'));
 test('VTE >12m without risk factors low',()=>assert.equal(risk({indication:'vte',vteTiming:'gt12',vteRecurrent:'no',vteThrombophilia:'none',vteCancer:'none'}).level,'low'));
+
+test('VTE date-category selection does not generate a missing-input blocker',()=>{
+  const ui=require('node:fs').readFileSync(require('node:path').join(__dirname,'preop-ui.js'),'utf8');
+  assert.match(ui,/\['preVTETime','VTE timing'\]/);
+  assert.doesNotMatch(ui,/b\.push\('Recent VTE: elective surgery timing/);
+});
+test('unknown aortic valve generation can be selected without forced classification',()=>{
+  const ui=require('node:fs').readFileSync(require('node:path').join(__dirname,'preop-ui.js'),'utf8');
+  assert.match(ui,/value="unknown">Unknown \/ ไม่ทราบ \(ไม่บังคับ\)/);
+  assert.doesNotMatch(ui,/b\.push\('Aortic MHV: ต้องระบุ valve generation/);
+  const x=risk({indication:'mechanical',valvePositions:['aortic'],valveGeneration:'unknown',strokeTiming:'none',valveFactors:[]});
+  assert.equal(x.level,'review');
+});
+test('official print header groups operation date and indication anticoagulant with bold labels',()=>{
+  const ui=require('node:fs').readFileSync(require('node:path').join(__dirname,'preop-ui.js'),'utf8');
+  assert.match(ui,/pre-header-procedure/);
+  assert.match(ui,/pre-header-date/);
+  assert.match(ui,/pre-header-bridge/);
+  assert.match(ui,/<strong>Thrombotic risk:<\/strong>/);
+});
