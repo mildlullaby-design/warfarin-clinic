@@ -1543,3 +1543,11 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
     border-color:#ebd7af;background:#fffbf0;color:#755724;
   }
 }
+
+/* Risk-assessment acknowledgement: counted values are UI progress, not clinical clearance. */
+@media screen {
+  .preop-module .pre-risk-input-progress{
+    margin:5px 0 12px;padding:7px 10px;border-radius:6px;
+    background:#f2f5f8;color:#46576a;font-size:.8rem;line-height:1.45;
+  }
+}
