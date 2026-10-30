@@ -450,6 +450,8 @@
     root.querySelectorAll('.pre-conditional-time').forEach(e=>e.classList.toggle('hidden',val('preNeuraxial')!=='yes'));
     const bridgeDecision=$('preBridge').closest('.field');
     if(bridgeDecision)bridgeDecision.classList.toggle('hidden',drug!=='warfarin');
+    const apixBridgeInfo=$('preApixBridgeInfo');
+    if(apixBridgeInfo)apixBridgeInfo.classList.toggle('hidden',drug!=='apixaban');
     updateRiskReference();
   }
   function hasSafeLmwh(p,v){
@@ -932,6 +934,11 @@
     const bridgeDecision=assessmentGrid();
     moveExistingField('preBridge',bridgeDecision);
     bridging.append(bridgeDecision,$('preBridgeFields'));
+    const apixBridgeInfo=document.createElement('p');
+    apixBridgeInfo.id='preApixBridgeInfo';
+    apixBridgeInfo.className='pre-ui-explainer hidden';
+    apixBridgeInfo.textContent='Apixaban: ไม่แนะนำ routine therapeutic LMWH bridging';
+    bridging.append(apixBridgeInfo);
 
     const summary=assessmentSection('05','Risk Summary & Reference','แสดงระดับความเสี่ยงและเหตุผลก่อน Generate Plan');
     summary.append($('preThromboticResult'));
