@@ -1847,3 +1847,24 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
 #prePrintExport .pre-print-grid .pre-a4-date{
   white-space:nowrap!important;
 }
+
+/* Explicit unknown operation date: neutral elective Draft state (Assessment only). */
+@media screen {
+  .preop-module .pre-date-unknown-choice{
+    display:flex!important;align-items:center;gap:8px;
+    margin:10px 0 7px!important;line-height:1.35!important;
+    font-size:.87rem!important;cursor:pointer;
+  }
+  .preop-module .pre-date-unknown-choice input[type="checkbox"]{
+    flex:none;width:auto!important;min-width:16px;height:16px;margin:0!important;
+  }
+  .preop-module .pre-date-is-unknown input[type="date"]{
+    background:#f4f5f7!important;color:#526171!important;
+    opacity:.65;cursor:not-allowed;
+  }
+  .preop-module #preSafety .pre-unknown-date-info{
+    color:var(--ink,#283640)!important;font-size:.9rem!important;
+    line-height:1.5!important;margin:10px 0!important;
+  }
+  .preop-module #preSafety .pre-unknown-date-info strong{font-weight:700}
+}
