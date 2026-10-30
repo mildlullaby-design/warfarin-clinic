@@ -257,8 +257,12 @@
   afAdvice.innerHTML='<strong>Guideline suggest: No routine bridging</strong><p class="muted">CHEST 2022 recommends against heparin bridging in AF.</p>';
   $('preAFExtra').append(afAdvice);
   const afOverride=document.createElement('div');afOverride.className='pre-subsection hidden';afOverride.id='preAFBridgeOverride';
-  afOverride.innerHTML='<label for="preAFBridgeRationale">AF bridging override - เหตุผลสำหรับ individual decision</label>'+
-    '<textarea id="preAFBridgeRationale" rows="2" placeholder="ระบุเหตุผลและแนวทางที่แพทย์ยืนยัน เนื่องจาก CHEST 2022 ไม่แนะนำ routine bridging"></textarea>';
+  afOverride.innerHTML='<div class="pre-af-bridge-heading"><strong>AF bridging override — เหตุผลสำหรับ individual decision</strong>'+
+    '<small>ติ๊กเหตุผลที่ต้องการอ้างอิงจาก Thrombotic Risk Assessment (เลือกได้หลายข้อ)</small></div>'+
+    '<div class="field pre-af-bridge-reason-list" id="preAFBridgeReasonList" role="group" aria-label="เลือก Supporting reasons สำหรับ AF bridging"></div>'+
+    '<div class="field"><label for="preAFBridgeRationale">เหตุผลเพิ่มเติม (Optional)</label>'+
+    '<textarea id="preAFBridgeRationale" rows="2" placeholder="เพิ่มเหตุผลเฉพาะรายที่ไม่ได้อยู่ในรายการ"></textarea></div>'+
+    '<p class="pre-ui-explainer">การติ๊กเป็นการบันทึกเหตุผลเท่านั้น ไม่ได้เลือก Bridging ให้อัตโนมัติ และ CHA2DS2-VASc อย่างเดียวไม่ใช่ข้อบ่งชี้ Bridging</p>';
   $('preBridgeFields').append(afOverride);
   function refreshAfAdvice(){
     const selection=core.afBridgeRecommendation({
@@ -299,6 +303,36 @@
       vteRecurrent:val('preVTERecur'),vteThrombophilia:val('preVTEThromb'),
       vteCancer:val('preVTECancer'),priorPeriopClot:ind==='vte'?val('preVTEClot'):val('preAFClot')
     });
+  }
+  // AF bridge rationale checklist mirrors only documented facts from the existing
+  // risk assessment. No manual patient-risk flags are created and nothing is auto-ticked.
+  let afBridgeReasonSignature='';
+  function currentAfBridgeReasons(){
+    const available=new Set(thromboticAssessment().reasons);
+    return [...root.querySelectorAll('input[name="preAFBridgeReason"]:checked')]
+      .map(el=>el.value).filter(reason=>available.has(reason));
+  }
+  function refreshAfBridgeReasons(){
+    const el=$('preAFBridgeReasonList');
+    if(!el)return;
+    const assessment=thromboticAssessment();
+    const reasons=val('preIndication')==='af'?assessment.reasons:[];
+    const signature=JSON.stringify(reasons);
+    if(signature===afBridgeReasonSignature)return;
+    const selected=new Set(currentAfBridgeReasons());
+    afBridgeReasonSignature=signature;
+    el.innerHTML=reasons.length
+      ?'<div class="pre-af-bridge-reason-meta"><strong>Thrombotic risk: '+esc(assessment.level.toUpperCase())+'</strong>'+
+        '<small>เลือก Supporting reasons เพื่อบันทึกในแผน</small></div>'+
+        reasons.map((reason)=>'<label class="pre-af-bridge-check">'+
+          '<input type="checkbox" name="preAFBridgeReason" value="'+esc(reason)+'"'+(selected.has(reason)?' checked':'')+'>'+
+          '<span>'+esc(reason)+'</span></label>').join('')
+      :'<p class="pre-ui-explainer">กรอก AF Thrombotic Risk Assessment ด้านบนก่อน แล้วเหตุผลจะปรากฏให้เลือกที่นี่</p>';
+  }
+  function afBridgeRationaleParts(){
+    const selected=currentAfBridgeReasons();
+    const manual=val('preAFBridgeRationale').trim();
+    return {selected,manual,combined:[...selected,...(manual?[manual]:[])].join(', ')};
   }
   function showThrombotic(){
     const a=thromboticAssessment(),el=$('preThromboticResult');
@@ -360,8 +394,13 @@
     if(p.anticoagulant==='warfarin'&&!validTargetInr())b.push('Target INR: เลือก 2-3, 2.5-3.5 หรือกรอกช่วงตัวเลขที่ถูกต้อง');
     if(p.anticoagulant==='warfarin'&&dailyValues()==='incomplete')b.push('Warfarin regimen รายวัน: ต้องกรอกครบทั้ง 7 วัน หรือเว้นว่างทั้งหมด');
     if(p.anticoagulant==='apixaban'&&val('preApixDose')==='other')b.push('Other Apixaban regimen: ต้องตรวจแผนและขนาดยากับแพทย์ก่อนใช้เป็น Final');
-    if(p.anticoagulant==='warfarin'&&p.bridgeChoice==='yes'&&p.indication==='af'&&!val('preAFBridgeRationale')){
-      b.push('AF: CHEST 2022 ไม่แนะนำ routine bridging; ถ้าเลือก bridging ต้องระบุเหตุผลเฉพาะรายก่อน Final');
+    if(p.anticoagulant==='warfarin'&&p.bridgeChoice==='yes'&&p.indication==='af'){
+      const rationale=afBridgeRationaleParts();
+      if(!rationale.combined){
+        b.push('AF: CHEST 2022 ไม่แนะนำ routine bridging; ต้องเลือก Supporting reason หรือระบุเหตุผลเฉพาะรายก่อน Final');
+      }else if(!rationale.manual && rationale.selected.every(x=>x.startsWith('CHA2DS2-VASc '))){
+        b.push('AF: CHA2DS2-VASc อย่างเดียวไม่เพียงพอ ต้องเพิ่มเหตุผลเฉพาะรายสำหรับ Bridging');
+      }
     }
     return b;
   }
@@ -398,7 +437,7 @@
     if(m.includes('crcl')||m.includes('renal impairment'))return 'preCrCl';
     if(m.includes('body weight'))return 'preWeight';
     if(m.includes('lmwh dose'))return 'preLmwhDose';
-    if(m.includes('af: chest'))return 'preAFBridgeRationale';
+    if(m.includes('af: chest')||m.includes('cha2ds2-vasc อย่างเดียว'))return 'preAFBridgeReasonList';
     return null;
   }
   function highlightReviewFields(p,blockers){
@@ -435,7 +474,7 @@
   }
   function switchFields(){
     const drug=val('preDrug'),ind=val('preIndication'),bridge=val('preBridge')==='yes';
-    updateGuidelineSummary();showThrombotic();
+    updateGuidelineSummary();showThrombotic();refreshAfBridgeReasons();
     showAsra();
     $('preWarfarinFields').classList.toggle('hidden',drug!=='warfarin');
     targetWrap.classList.toggle('hidden',val('preTargetInr')!=='other');
@@ -575,9 +614,10 @@
   // Shared clinical rationale for A4 and HOSxP. Do not invent a physician approval statement.
   // Thrombotic risk factors support the decision but never automatically select bridging.
   function bridgingRationale(p,a){
-    const entered=val('preAFBridgeRationale').trim();
     if(p.anticoagulant==='apixaban')return 'DOAC: ไม่แนะนำ routine therapeutic LMWH bridging';
-    if(entered && p.indication==='af' && p.bridgeChoice==='yes')return entered;
+    if(p.indication==='af' && p.bridgeChoice==='yes'){
+      return afBridgeRationaleParts().combined || 'ต้องระบุเหตุผลในการ bridging';
+    }
     if(p.bridgeChoice==='yes')return a.reasons.join(', ') || 'ต้องระบุเหตุผลในการ bridging';
     if(p.indication==='af')return 'AF: ไม่แนะนำ routine bridging (CHEST 2022)';
     if(p.indication==='vte')return 'VTE: ไม่แนะนำ routine bridging เป็นหลัก (CHEST 2022)';
