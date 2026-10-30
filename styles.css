@@ -1551,3 +1551,94 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
     background:#f2f5f8;color:#46576a;font-size:.8rem;line-height:1.45;
   }
 }
+
+
+/* Print v4 — 15-day A4 compact notes.
+   Keep the medication grid legible; only auxiliary prose is 9pt.
+   Apply last to override earlier large-print and footnote rules. */
+@page { size: A4 portrait; margin: 14mm 14mm; }
+@media screen {
+  #prePrintSurface .pre-print-notes{
+    margin-top:2mm!important;
+    padding-top:1mm!important;
+  }
+  #prePrintSurface .pre-print-notes .pre-bridging-compact,
+  #prePrintSurface .pre-print-notes .pre-bridging-compact *{
+    font-family:"Sarabun","TH Sarabun New",Tahoma,sans-serif!important;
+    font-size:9pt!important;line-height:1.15!important;
+  }
+  #prePrintSurface .pre-print-notes .pre-bridging-compact{
+    border:0!important;padding:0!important;margin:0!important;
+  }
+  #prePrintSurface .pre-print-notes .pre-bridging-compact p{
+    margin:0 0 1mm!important;padding:0!important;
+  }
+  #prePrintSurface .pre-print-notes .pre-bridging-compact strong{font-weight:700!important}
+}
+@media print {
+  #prePrintExport .pre-print-heading{margin-bottom:0.7mm!important;font-size:15pt!important}
+  #prePrintExport .pre-print-subheading{margin-bottom:2mm!important;font-size:9pt!important}
+  #prePrintExport .pre-print-patient{margin-bottom:2mm!important;padding-bottom:1.5mm!important;font-size:11pt!important}
+  #prePrintExport .pre-print-patient .pre-header-row{
+    font-size:11pt!important;line-height:1.19!important;
+    margin:0 0 1.4mm!important;
+  }
+  #prePrintExport .pre-print-patient .pre-header-row strong{font-size:11pt!important;font-weight:700!important}
+  #prePrintExport .pre-print-patient .pre-header-bridge{
+    margin:1.4mm 0!important;padding:0!important;
+  }
+  #prePrintExport .pre-print-grid,
+  #prePrintExport .pre-print-grid th,
+  #prePrintExport .pre-print-grid td{
+    font-size:10.5pt!important;line-height:1.15!important;
+  }
+  #prePrintExport .pre-print-grid th,
+  #prePrintExport .pre-print-grid td{
+    padding:1mm 1.2mm!important;
+    overflow-wrap:break-word!important;
+  }
+  #prePrintExport .pre-print-notes{
+    margin-top:1.5mm!important;
+    padding-top:1mm!important;
+    border-top:1px solid #aaa!important;
+    break-inside:avoid!important;
+  }
+  #prePrintExport .pre-print-notes .pre-bridging-compact,
+  #prePrintExport .pre-print-notes .pre-bridging-compact *{
+    font-family:"Sarabun","TH Sarabun New",Tahoma,sans-serif!important;
+    font-size:9pt!important;line-height:1.15!important;
+  }
+  #prePrintExport .pre-print-notes .pre-bridging-compact{
+    border:0!important;border-left:0!important;
+    margin:0!important;padding:0!important;
+    break-inside:avoid!important;
+  }
+  #prePrintExport .pre-print-notes .pre-bridging-compact p{
+    font-size:9pt!important;line-height:1.15!important;
+    margin:0 0 0.7mm!important;padding:0!important;
+  }
+  #prePrintExport .pre-print-notes .pre-bridging-compact strong{
+    display:inline!important;font-size:9pt!important;font-weight:700!important;
+    margin:0!important;
+  }
+  #prePrintExport .pre-print-notes .pre-print-note{
+    font-size:9pt!important;line-height:1.15!important;margin:0 0 0.7mm!important;
+  }
+  #prePrintExport .pre-print-notes .pre-print-note strong{
+    font-size:9pt!important;font-weight:700!important;
+  }
+  #prePrintExport .pre-print-footer{
+    margin-top:2mm!important;padding:0!important;
+    break-inside:avoid!important;
+  }
+  #prePrintExport .pre-signature-block,
+  #prePrintExport .pre-signature-line,
+  #prePrintExport .pre-signature-name,
+  #prePrintExport .pre-signature-date{
+    font-size:10.5pt!important;line-height:1.12!important;
+  }
+  #prePrintExport .pre-signature-date{margin-top:0.8mm!important}
+  #prePrintExport .pre-reference-line{
+    font-size:8pt!important;line-height:1.1!important;margin-top:1.5mm!important;
+  }
+}
