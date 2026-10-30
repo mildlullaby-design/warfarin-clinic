@@ -305,7 +305,19 @@ test('Optional HN appears after name; absent operation date leaves all 15 A4 dat
   const cells=[...preview.querySelectorAll('.pre-print-grid tbody .pre-a4-date')];
   assert.equal(cells.length,15);
   for(const cell of cells)assert.equal(cell.textContent,'');
-  assert.equal(d.getElementById('prePrint').disabled,true,'no undated Final plan');
+  assert.equal(d.getElementById('prePrint').disabled,false,'reviewed undated A4 should be printable');
+  assert.match(d.getElementById('prePrint').textContent,/เว้นวันที่/);
+  let printCount=0;
+  dom.window.print=()=>{printCount++;};
+  d.getElementById('prePrint').click();
+  assert.equal(printCount,1,'Confirm & Print should invoke printing');
+  assert.match(d.getElementById('preStatus').textContent,/Reviewed undated A4/);
+  const printed=d.getElementById('prePrintExport');
+  assert.match(printed.textContent,/REVIEWED — ยังไม่ทราบวันผ่าตัด/);
+  assert.match(printed.textContent,/ยังไม่ใช่คำสั่งยาระบุวันที่/);
+  assert.equal(printed.querySelector('.pre-header-date').textContent.trim(),'วันที่:');
+  assert.ok([...printed.querySelectorAll('.pre-print-grid tbody .pre-a4-date')].every(c=>c.textContent===''));
+  assert.ok(!printed.textContent.includes('Operation date missing: DRAFT only'));
   assert.ok(d.getElementById('preDraftPrint'));
   assert.match(d.getElementById('preSafety').textContent,/Operation date missing/);
   dom.window.close();
@@ -380,6 +392,28 @@ test('Leaving operation date blank without unknown-date choice still requests re
   d.getElementById('prePreview').click();
   assert.match(d.getElementById('preSafety').textContent,/Operation date missing: DRAFT only, no final dated orders/);
   assert.equal(d.getElementById('prePrint').disabled,true);
+  dom.window.close();
+});
+test('Unknown date does NOT allow Confirm & Print with other clinical blockers',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  d.getElementById('preDateUnknown').click();
+  const set=(id,value)=>{
+    const e=d.getElementById(id);e.value=value;
+    e.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  };
+  set('preDrug','warfarin');set('preIndication','af');set('preProcedure','Thyroidectomy');
+  set('preAge','67');set('preWeight','58');set('preCrCl','49');
+  set('preScore','7');set('preAFStroke','none');
+  set('preRheumaticMS','yes');set('preAFClot','no');
+  // Weekly dose and INR target deliberately missing.
+  d.getElementById('prePreview').click();
+  assert.equal(d.getElementById('prePrint').disabled,true);
+  assert.match(d.getElementById('preSafety').textContent,/Warfarin: ระบุ Weekly dose/);
+  assert.match(d.getElementById('preSafety').textContent,/Target INR/);
+  assert.doesNotMatch(d.getElementById('preSafety').textContent,/Operation date missing: DRAFT only/);
+  let attempts=0;dom.window.print=()=>{attempts++;};
+  d.getElementById('prePrint').click();
+  assert.equal(attempts,0,'Clinical blockers cannot be bypassed');
   dom.window.close();
 });
 test('New patient resets unknown-date checkbox and re-enables date',()=>{
