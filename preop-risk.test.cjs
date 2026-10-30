@@ -80,3 +80,39 @@ test('A4 bridging footnote restores just the agreed Start Enoxaparin and Neuraxi
   assert.equal((listBlock.match(/'Start Enoxaparin:|'Neuraxial:/g)||[]).length,2);
   assert.doesNotMatch(listBlock,/['"]Hold enoxaparin|['"]Last dose/);
 });
+
+test('Assessment UI preserves all original patient/procedure/drug inputs by moving existing nodes',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const html=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
+  const ui=fs.readFileSync(path.join(__dirname,'preop-ui.js'),'utf8');
+  const required=['preProcedure','preDate','preTime','preBleed','preName','preAge','preSex','preWeight','preCr','preCrCl','preNeuraxial','preDrug','preIndication','preBridge'];
+  for(const id of required){
+    assert.match(html,new RegExp('id="'+id+'"'), 'original HTML input missing '+id);
+    assert.ok(ui.includes("'"+id+"'"),'new layout did not reference original field '+id);
+  }
+  assert.match(ui,/function moveExistingField\(id,destination\)/);
+  assert.match(ui,/destination\.append\(field\)/);
+  assert.match(ui,/buildAssessmentLayout\(\);/);
+});
+test('Assessment uses five ordered sections, collapsed procedure reference and indication-dependent risk table',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const ui=fs.readFileSync(path.join(__dirname,'preop-ui.js'),'utf8');
+  for(const n of ['01','02','03','04','05'])assert.match(ui,new RegExp("assessmentSection\\('"+n+"'"));
+  assert.match(ui,/preProcedureReference/);
+  assert.match(ui,/bleedingReference\.append\(\$\('preRiskInline'\)\)/);
+  assert.match(ui,/refDetails\.id='preRiskReference'/);
+  assert.match(ui,/RISK_REFERENCE_TABLES\[val\('preIndication'\)\]/);
+  assert.match(ui,/updateRiskReference\(\);/);
+  assert.match(ui,/summary\.append\(\$\('preThromboticResult'\)\)/);
+});
+test('Mechanical valve primary criteria and optional ESC factors are visibly distinct, not automatic bridging',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const ui=fs.readFileSync(path.join(__dirname,'preop-ui.js'),'utf8');
+  assert.match(ui,/A\. Primary Risk Criteria/);
+  assert.match(ui,/B\. Additional Prothrombotic Factors/);
+  assert.match(ui,/preValveFactor/);
+  assert.match(ui,/การติ๊กไม่ได้เป็นคำสั่งให้ Bridging อัตโนมัติ/);
+  for(const field of ['recent','lvef','ms','hyper'])assert.ok(ui.includes(field+":"),'factor definition '+field+' missing');
+  assert.match(ui,/moveExistingField\('preBridge',bridgeDecision\)/);
+  assert.match(ui,/preApixBridgeInfo/);
+});
