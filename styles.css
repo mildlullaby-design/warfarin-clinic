@@ -1524,3 +1524,22 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
     min-height:64px;resize:vertical;
   }
 }
+
+/* Input acknowledgement without implying a completed clinical order. */
+@media screen {
+  .preop-module .pre-ui-input-status{
+    margin:5px 0 10px;padding:7px 10px;border:1px solid #dbe2e9;
+    border-radius:7px;background:#f8fafc;color:#4b5b6a;
+    line-height:1.4;font-size:.81rem;
+  }
+  .preop-module .pre-ui-input-status[data-selected]:not([data-selected="0"]),
+  .preop-module .pre-ui-input-status[data-state="ready"]{
+    border-color:#c7dfd0;background:#f1f8f3;color:#31563a;
+  }
+  .preop-module .pre-ui-input-status[data-state="blocked"]{
+    border-color:#e6c5c5;background:#fff4f4;color:#8a2929;
+  }
+  .preop-module .pre-ui-input-status[data-state="review"]{
+    border-color:#ebd7af;background:#fffbf0;color:#755724;
+  }
+}
