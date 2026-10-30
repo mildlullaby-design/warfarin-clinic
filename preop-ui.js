@@ -38,7 +38,7 @@
   const esc=v=>str(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const val=id=>str($(id)?.value).trim(), checked=id=>!!$(id)?.checked;
   const num=id=>val(id)===''?NaN:Number(val(id));
-  const dateAt=(date,offset)=>date?core.thaiDate(core.shiftDate(date,offset)):'___/___/____';
+  const dateAt=(date,offset)=>date?core.thaiDate(core.shiftDate(date,offset)):'';
   let revision=0,activePlan=null,rows=[],mappedProcedure=false,rendering=false;
   // A dedicated top-level print host prevents hidden screens / app layout
   // from creating blank PDF pages in Chrome's print pagination.
@@ -815,7 +815,7 @@
       ' <span class="pre-header-hn"><strong>HN:</strong> '+esc(val('preHN')||'................')+'</span></span>'+
       ' <span class="pre-header-age"><strong>อายุ:</strong> '+esc(val('preAge')||'____')+' ปี</span></div>'+
       '<div class="pre-header-row pre-header-procedure"><strong>Operation:</strong> '+esc(p.procedure||'-')+
-        ' <span class="pre-header-date"><strong>วันที่:</strong> '+esc(p.operationDate?core.thaiDate(p.operationDate):'___/___/____')+'</span></div>'+
+        ' <span class="pre-header-date"><strong>วันที่:</strong> '+esc(p.operationDate?core.thaiDate(p.operationDate):'')+'</span></div>'+
       '<div class="pre-header-row"><strong>Indication:</strong> '+esc(indicationName+valveName)+
       ' <span class="pre-header-separator">|</span> <strong>Anticoagulant:</strong> '+esc(anticoagName)+'</div>'+
       '<div class="pre-header-row"><strong>Bleeding risk:</strong> '+esc(LABEL[p.bleedingRisk]||'Unclassified')+
