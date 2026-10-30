@@ -64,7 +64,7 @@
   // VTE: AHA/ACC 2024 Table 14 / CHEST 2022.
   function assessThromboticRisk(p={}) {
     const reasons=[], notices=[];
-    let level='review', complete=true, source='';
+    let level='review', complete=true, source='', baselineLevel=null, clinicalOverride=false;
     const add=(s)=>{if(s&&!reasons.includes(s))reasons.push(s);};
     const unknown=(s)=>{complete=false;notices.push(s);};
     if(p.indication==='af') {
@@ -125,14 +125,18 @@
       if(!['yes','no'].includes(recur))unknown('Recurrence history unknown');
       if(!['none','aps','severe','nonsevere'].includes(thromb))unknown('Thrombophilia history unknown');
       if(!['none','high','other','history'].includes(cancer))unknown('Cancer history unknown');
-      // A prior VTE on anticoagulant interruption is a high-risk clinical override,
-      // not an explicit stand-alone item in CHEST 2022 Table 1. It never orders bridging.
-      if(['lt1','lt3'].includes(timing)||['aps','severe'].includes(thromb)||cancer==='high'||p.priorPeriopClot==='yes')level='high';
-      else if(complete)level=(timing==='3to12'||recur==='yes'||thromb==='nonsevere'||cancer==='other')?'moderate':'low';
+      // Guideline-category VTE risk and exceptional clinical history are distinct.
+      // Prior VTE on VKA interruption is NOT a stand-alone CHEST/AHA Table 1 tier.
+      const guidelineHigh=['lt1','lt3'].includes(timing)||['aps','severe'].includes(thromb)||cancer==='high';
+      baselineLevel=guidelineHigh?'high'
+        :complete?(timing==='3to12'||recur==='yes'||thromb==='nonsevere'||cancer==='other'?'moderate':'low')
+        :'review';
+      clinicalOverride=p.priorPeriopClot==='yes';
+      level=clinicalOverride?'high':baselineLevel;
       if(p.priorPeriopClot==='yes')notices.push('High-risk clinical override: prior VTE during anticoagulant interruption; review the previous event and bleeding risk, not automatic LMWH bridging');
       if(['lt1','lt3'].includes(timing))notices.push('Recent VTE: consider postponing elective surgery; physician review required');
     } else unknown('Indication unknown');
-    return {level,complete,reasons,notices,source};
+    return {level,complete,reasons,notices,source,baselineLevel,clinicalOverride};
   }
 
   // AF: CHEST 2022 strongly recommends against routine perioperative heparin bridging.
