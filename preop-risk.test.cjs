@@ -126,7 +126,7 @@ test('Assessment uses five ordered sections, collapsed procedure reference and i
   assert.match(ui,/refDetails\.id='preRiskReference'/);
   assert.match(ui,/RISK_REFERENCE_TABLES\[val\('preIndication'\)\]/);
   assert.match(ui,/updateRiskReference\(\);/);
-  assert.match(ui,/summary\.append\(\$\('preThromboticResult'\)\)/);
+  assert.match(ui,/summary\.append\(bleedingSummary,\$\('preThromboticResult'\)\)/);
 });
 test('Mechanical valve primary criteria and optional ESC factors are visibly distinct, not automatic bridging',()=>{
   const fs=require('node:fs'),path=require('node:path');
