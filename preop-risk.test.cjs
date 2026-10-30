@@ -55,3 +55,28 @@ test('Print preview and paper output explicitly separate header groups',()=>{
   assert.match(css,/margin:0 0 2mm!important/);
   assert.match(css,/#prePrintExport \.pre-print-patient \.pre-header-procedure/);
 });
+
+test('Medication calendar uses documented weekly Warfarin dose if daily regimen is absent',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const ui=fs.readFileSync(path.join(__dirname,'preop-ui.js'),'utf8');
+  assert.match(ui,/const current=Number\.isFinite\(dose\).*?\(p\.weeklyDose\|\|'-'\)\+' mg\/wk'/);
+  assert.match(ui,/:\(p\.weeklyDose\|\|'-'\)\+' mg\/wk'\)\+\(v\.action/);
+  assert.doesNotMatch(ui,/ขนาดเดิมตามตารางยา|ตามตารางยาเดิม|:'ขนาดเดิม'\)/);
+});
+test('Remove the long CHEST ASRA therapeutic LMWH guidance from the input page',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const ui=fs.readFileSync(path.join(__dirname,'preop-ui.js'),'utf8');
+  assert.doesNotMatch(ui,/preBridgingGuidance|Therapeutic LMWH bridging — CHEST 2022 \/ ASRA 2025/);
+});
+test('A4 bridging footnote restores just the agreed Start Enoxaparin and Neuraxial bullets',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const ui=fs.readFileSync(path.join(__dirname,'preop-ui.js'),'utf8');
+  assert.match(ui,/function bridgingFootnoteHtml\(p,v\)/);
+  assert.match(ui,/Start Enoxaparin: เริ่มเมื่อ INR ต่ำกว่า therapeutic range/);
+  assert.match(ui,/Neuraxial: หากมี Spinal\/Epidural หรือ Deep plexus block/);
+  assert.match(ui,/const notes=.*bridgingFootnoteHtml\(p,v\)/);
+  assert.match(ui,/\(activePlan\?bridgingFootnoteHtml\(activePlan\.p,activePlan\.v\):''\)/);
+  const listBlock=ui.slice(ui.indexOf('function bridgingFootnoteHtml'),ui.indexOf('function afRecommendationText'));
+  assert.equal((listBlock.match(/'Start Enoxaparin:|'Neuraxial:/g)||[]).length,2);
+  assert.doesNotMatch(listBlock,/['"]Hold enoxaparin|['"]Last dose/);
+});
