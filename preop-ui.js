@@ -489,7 +489,7 @@
       if(day<0){
         if(p.anticoagulant==='warfarin'){
           const dose=dailyFor(day,p.operationDate);
-          const current=Number.isFinite(dose)?(dose===0?'0 mg':dose+' mg'):'ขนาดเดิมตามตารางยา');
+          const current=Number.isFinite(dose)?(dose===0?'0 mg':dose+' mg'):'ขนาดเดิมตามตารางยา';
           drug=holding?'Hold Warfarin':'Warfarin '+current;
         } else {
           drug=holding?'Hold Apixaban':'Apixaban '+(p.apixDose||'-')+' mg BID';
@@ -630,15 +630,15 @@
         :(a.level==='low'?'Low thrombotic risk; ไม่ทำ routine bridging':
           'แพทย์เลือก No bridging หลังประเมิน thrombotic/bleeding risk ('+reasons+')'))
       :'Apixaban: ไม่แนะนำ routine therapeutic LMWH bridging';
-    const headerLine=(label,value)=>'<div class="pre-header-row"><strong>'+label+'</strong> '+esc(value)+'</div>';
     const hdr='<h2 class="pre-print-heading">แผนการจัดการยาต้านการแข็งตัวของเลือดก่อนผ่าตัด</h2>'+
       '<div class="pre-print-subheading">PERI-OPERATIVE ANTICOAGULANT MANAGEMENT</div>'+
       '<div class="pre-print-patient">'+
-      headerLine('ชื่อผู้ป่วย:',val('preName')||'........................................................')+
-      '<div class="pre-header-row"><strong>อายุ:</strong> '+esc(val('preAge')||'____')+' ปี</div>'+
+      '<div class="pre-header-row pre-header-patient"><strong>ชื่อผู้ป่วย:</strong> '+esc(val('preName')||'........................................................')+
+      ' <span class="pre-header-age"><strong>อายุ:</strong> '+esc(val('preAge')||'____')+' ปี</span></div>'+
       '<div class="pre-header-row pre-header-procedure"><strong>Operation:</strong> '+esc(p.procedure||'-')+
         ' <span class="pre-header-date"><strong>วันที่:</strong> '+esc(p.operationDate?core.thaiDate(p.operationDate):'-')+'</span></div>'+
-      headerLine('Indication:',indicationName+valveName+' | Anticoagulant: '+anticoagName)+
+      '<div class="pre-header-row"><strong>Indication:</strong> '+esc(indicationName+valveName)+
+      ' <span class="pre-header-separator">|</span> <strong>Anticoagulant:</strong> '+esc(anticoagName)+'</div>'+
       '<div class="pre-header-row"><strong>Bleeding risk:</strong> '+esc(LABEL[p.bleedingRisk]||'Unclassified')+
       ' <span class="pre-header-separator">|</span> <strong>Thrombotic risk:</strong> '+esc(riskLabel+' ('+reasons+')')+'</div>'+
       '<div class="pre-header-row pre-header-bridge"><strong>Bridging:</strong> '+
