@@ -196,9 +196,10 @@
         <div class="field"><label for="preIndication">Primary indication</label><select id="preIndication"><option value="">เลือก</option><option value="af">Atrial Fibrillation</option><option value="mechanical">Mechanical heart valve</option><option value="vte">VTE (DVT / PE)</option></select></div>
         <div class="field"><label for="preProcedure">Procedure</label><input id="preProcedure" placeholder="Procedure name (clinician classified)"></div>
         <div class="field"><label for="preBleed">Procedure bleeding risk</label><select id="preBleed"><option value="">Unclassified — physician review</option><option value="minimal">Minimal</option><option value="lowmod">Low–Moderate</option><option value="high">High</option></select></div>
-        <div class="field"><label for="preDate">Operation date</label><input id="preDate" type="date"><small>หากไม่ทราบวันที่ จะได้เพียง Draft</small></div>
+        <div class="field"><label for="preDate">Operation date (Optional)</label><input id="preDate" type="date"><small>เว้นว่างได้: A4 จะแสดงช่องให้เขียนวันผ่าตัดและวันที่แต่ละแถวด้วยมือ (พิมพ์ Draft เท่านั้นจนกว่าจะระบุวันที่)</small></div>
         <div class="field"><label for="preTime">เวลาเริ่มผ่าตัด (Optional)</label><input id="preTime" type="time"><small>ไม่บังคับกรอก; หากมี neuraxial ให้ทีมวิสัญญียืนยัน timing แยกต่างหาก</small></div>
         <div class="field"><label for="preName">Patient name</label><input id="preName" autocomplete="off" placeholder="ชื่อผู้ป่วย (ไม่บันทึก)"></div>
+        <div class="field"><label for="preHN">HN (Optional)</label><input id="preHN" type="text" autocomplete="off" maxlength="40" placeholder="HN (ไม่บังคับ · ไม่บันทึก)"></div>
         <div class="field"><label for="preAge">Age (years)</label><input id="preAge" type="number" min="18" max="120"></div>
         <div class="field"><label for="preSex">Sex for Cockcroft–Gault</label><select id="preSex"><option value="">เลือก</option><option value="male">Male</option><option value="female">Female</option></select></div>
         <div class="field"><label for="preWeight">Actual body weight (kg)</label><input id="preWeight" type="number" min="1" step="0.1"></div>
