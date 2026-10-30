@@ -38,7 +38,7 @@
   const esc=v=>str(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const val=id=>str($(id)?.value).trim(), checked=id=>!!$(id)?.checked;
   const num=id=>val(id)===''?NaN:Number(val(id));
-  const dateAt=(date,offset)=>date?core.thaiDate(core.shiftDate(date,offset)):'—';
+  const dateAt=(date,offset)=>date?core.thaiDate(core.shiftDate(date,offset)):'___/___/____';
   let revision=0,activePlan=null,rows=[],mappedProcedure=false,rendering=false;
   // A dedicated top-level print host prevents hidden screens / app layout
   // from creating blank PDF pages in Chrome's print pagination.
@@ -462,6 +462,8 @@
     if(m.includes('primary indication')||m.includes('apixaban + mechanical'))return 'preIndication';
     if(m.includes('procedure name'))return 'preProcedure';
     if(m.includes('bleeding risk')||m.includes('other procedure'))return m.includes('other procedure')?'preOtherVerified':'preBleed';
+    // A missing date is permitted in a handwritten-date Draft; invalid entered dates still need correction.
+    if(m.includes('operation date missing'))return null;
     if(m.includes('operation date')||m.includes('invalid operation'))return 'preDate';
     if(m.includes('cha2ds2-vasc'))return 'preScore';
     if(m.includes('stroke/tia')&&m.includes('perioperative'))return 'preAFStroke';
@@ -809,10 +811,11 @@
     const hdr='<h2 class="pre-print-heading">แผนการจัดการยาต้านการแข็งตัวของเลือดก่อนผ่าตัด</h2>'+
       '<div class="pre-print-subheading">PERI-OPERATIVE ANTICOAGULANT MANAGEMENT</div>'+
       '<div class="pre-print-patient pre-a4-patient">'+
-      '<div class="pre-header-row pre-header-patient"><strong>ชื่อผู้ป่วย:</strong> '+esc(val('preName')||'........................................................')+
+      '<div class="pre-header-row pre-header-patient"><span class="pre-header-identity"><strong>ชื่อผู้ป่วย:</strong> '+esc(val('preName')||'................................')+
+      ' <span class="pre-header-hn"><strong>HN:</strong> '+esc(val('preHN')||'................')+'</span></span>'+
       ' <span class="pre-header-age"><strong>อายุ:</strong> '+esc(val('preAge')||'____')+' ปี</span></div>'+
       '<div class="pre-header-row pre-header-procedure"><strong>Operation:</strong> '+esc(p.procedure||'-')+
-        ' <span class="pre-header-date"><strong>วันที่:</strong> '+esc(p.operationDate?core.thaiDate(p.operationDate):'-')+'</span></div>'+
+        ' <span class="pre-header-date"><strong>วันที่:</strong> '+esc(p.operationDate?core.thaiDate(p.operationDate):'___/___/____')+'</span></div>'+
       '<div class="pre-header-row"><strong>Indication:</strong> '+esc(indicationName+valveName)+
       ' <span class="pre-header-separator">|</span> <strong>Anticoagulant:</strong> '+esc(anticoagName)+'</div>'+
       '<div class="pre-header-row"><strong>Bleeding risk:</strong> '+esc(LABEL[p.bleedingRisk]||'Unclassified')+
@@ -823,6 +826,7 @@
       ' <span class="pre-header-separator">|</span> <strong>Cr:</strong> '+esc(val('preCr')||'-')+' mg/dL'+
       ' <span class="pre-header-separator">|</span> <strong>CrCl:</strong> '+esc(p.crCl||'-')+' mL/min</div>'+
       '</div>';
+    const dateBlankNotice=p.operationDate?'':'<p class="pre-a4-undated-notice"><strong>ไม่ระบุวันผ่าตัด:</strong> กรุณากรอกวันผ่าตัดและวันที่ทุกแถว (Day −7 ถึง +7) ก่อนใช้แผนนี้ · DRAFT ONLY</p>';
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>วันที่</th><th>ยา</th><th>แผนการรักษา / คำแนะนำ</th></tr></thead><tbody>'+
       rows.map(r=>printableRow(r,p,v)).join('')+'</tbody></table>';
     const safetyNotes=[];
@@ -849,7 +853,7 @@
       '<div class="pre-signature-date">วันที่ ............ / ............ / ............</div>'+
       '</div>'+
       '<small class="pre-reference-line">Clinical reference: AHA/ACC 2024; ESC/EACTS 2025; CHEST 2022; ISTH SSC 2026; ASRA 2025 · Clinical review required</small></footer>';
-    return hdr+tbl+warningHtml+notes+footer;
+    return hdr+dateBlankNotice+tbl+warningHtml+notes+footer;
   };
   function renderPlan(){
     const {p,v,blockers}=plan();
@@ -1080,7 +1084,7 @@
     patientHeading.textContent='Patient & Renal Assessment';
     procedure.append(patientHeading);
     const patientFields=assessmentGrid();
-    ['preName','preAge','preSex','preWeight','preCr','preCrCl','preNeuraxial'].forEach(id=>moveExistingField(id,patientFields));
+    ['preName','preHN','preAge','preSex','preWeight','preCr','preCrCl','preNeuraxial'].forEach(id=>moveExistingField(id,patientFields));
     procedure.append(patientFields,$('preAsraReview'));
     const printDetails=[...inputScreen.children].find(x=>x.tagName==='DETAILS'&&x.textContent.includes('Print details'));
     if(printDetails){
