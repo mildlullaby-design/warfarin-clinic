@@ -280,3 +280,56 @@ test('Free-text AF rationale is acknowledged even without a selected checkbox',(
   assert.match(d.getElementById('preAFBridgeSelectedStatus').textContent,/รับเหตุผลเพิ่มเติมแล้ว/);
   dom.window.close();
 });
+
+test('Optional HN appears after patient name; absent operation date leaves 15 writable A4 date cells and Draft-only print',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const put=(id,value)=>{
+    const e=d.getElementById(id);
+    e.value=value;
+    e.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  };
+  assert.ok(d.getElementById('preHN'));
+  assert.match(d.querySelector('label[for="preDate"]').textContent,/Optional/);
+  assert.ok(d.getElementById('preHN').closest('#preAssessmentLayout'));
+  put('preDrug','warfarin');put('preIndication','af');
+  put('preProcedure','Thyroidectomy');put('preAge','67');
+  put('preWeight','58');put('preCrCl','49');put('preWeekly','22');
+  put('preTargetInr','2-3');put('preScore','7');
+  put('preAFStroke','none');put('preRheumaticMS','yes');put('preAFClot','no');
+  put('preHN','01234567');
+  d.getElementById('prePreview').click();
+  const preview=d.getElementById('prePrintSurface');
+  assert.match(preview.querySelector('.pre-header-patient').textContent,/ชื่อผู้ป่วย:.*HN: 01234567.*อายุ:/);
+  assert.match(preview.querySelector('.pre-header-date').textContent,/___\/___\/____/);
+  assert.match(preview.querySelector('.pre-a4-undated-notice').textContent,/กรอกวันผ่าตัดและวันที่ทุกแถว/);
+  const cells=[...preview.querySelectorAll('.pre-print-grid tbody .pre-a4-date')];
+  assert.equal(cells.length,15);
+  for(const cell of cells)assert.equal(cell.textContent,'___/___/____');
+  assert.equal(d.getElementById('prePrint').disabled,true,'no undated Final plan');
+  assert.ok(d.getElementById('preDraftPrint'));
+  assert.match(d.getElementById('preSafety').textContent,/Operation date missing/);
+  dom.window.close();
+});
+test('Known operation date calculates calendar as before while optional HN may be omitted',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const put=(id,value)=>{
+    const e=d.getElementById(id);e.value=value;
+    e.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  };
+  put('preDrug','warfarin');put('preIndication','af');
+  put('preProcedure','Thyroidectomy');put('preDate','2026-11-04');
+  put('preAge','67');put('preWeight','58');put('preCrCl','49');
+  put('preWeekly','22');put('preTargetInr','2-3');
+  put('preScore','7');put('preAFStroke','none');put('preRheumaticMS','yes');put('preAFClot','no');
+  d.getElementById('prePreview').click();
+  const preview=d.getElementById('prePrintSurface');
+  assert.equal(preview.querySelector('.pre-header-date').textContent.trim(),'วันที่: 04/11/2569');
+  assert.match(preview.querySelector('.pre-header-patient').textContent,/HN: \.+/);
+  assert.equal(preview.querySelector('.pre-a4-undated-notice'),null);
+  const dateCells=[...preview.querySelectorAll('.pre-print-grid tbody .pre-a4-date')].map(e=>e.textContent);
+  assert.equal(dateCells.length,15);
+  assert.equal(dateCells[0],'28/10/2569');
+  assert.equal(dateCells[7],'04/11/2569');
+  assert.equal(dateCells[14],'11/11/2569');
+  dom.window.close();
+});
