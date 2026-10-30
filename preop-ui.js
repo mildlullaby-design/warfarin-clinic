@@ -722,12 +722,50 @@
       '<td><textarea data-row="'+i+'" data-col="drug" rows="2">'+esc(r.drug)+'</textarea></td>'+
       '<td><textarea data-row="'+i+'" data-col="manage" rows="2">'+esc(r.manage)+'</textarea></td></tr>';
   }
-  function printableRow(r,p){
-    const day='<td>'+r.day+'</td><td>'+esc(r.date)+'</td>';
-    if(isMergedPostOp(p,r)){
-      return '<tr>'+day+'<td colspan="2" class="pre-merged-postop">'+esc(r.manage||r.drug)+'</td></tr>';
+  // A4-only format; retain freehand clinician edits and the underlying dose engine.
+  function a4Text(r,p,v){
+    let drug=r.drug||'',manage=r.manage||'';
+    const safeLmwh=hasSafeLmwh(p,v);
+    const autoLmwh=safeLmwh
+      ?'Enoxaparin '+v.dose.volume+' mL SC ('+Number(v.dose.mg.toFixed(1))+' mg) q12h':'';
+    const a4Lmwh=safeLmwh
+      ?'Enoxaparin '+Number(v.dose.mg.toFixed(1))+' mg ('+v.dose.volume+' mL) SC q12h':'';
+    if(r.day===-3 && autoLmwh && manage===autoLmwh)
+      manage='พิจารณา '+a4Lmwh+' เมื่อ INR subtherapeutic';
+    if(r.day===-2 && autoLmwh && manage===autoLmwh)
+      manage=a4Lmwh+' ตามแผนที่ยืนยัน';
+    if(r.day===-1){
+      manage=manage.replace('หยุด Enoxaparin อย่างน้อย 24 hr ก่อนผ่าตัด','หยุด Enoxaparin ≥24 hr ก่อนผ่าตัด');
+      manage=manage.replace('ตรวจ INR ก่อนผ่าตัด (โดยทั่วไป target <1.5 ตามหัตถการ)','ตรวจ INR ก่อนผ่าตัด (ตามเป้าหมายของหัตถการ)');
     }
-    return '<tr>'+day+'<td>'+esc(r.drug)+'</td><td>'+esc(r.manage).replace(/\n/g,'<br>')+'</td></tr>';
+    const weekly=(p.weeklyDose||'-')+' mg/wk';
+    const autoRestart='พิจารณา restart Warfarin '+weekly+' เมื่อไม่มี bleeding/hemostasis ดี และแพทย์ยืนยัน';
+    if(r.day===1 && manage===autoRestart)
+      manage='พิจารณา restart Warfarin '+weekly+' เมื่อ hemostasis ดี ไม่มี bleeding และทีมรักษายืนยัน';
+    if(r.day>0 && /^Warfarin .+ mg\/wk \(หลังยืนยัน restart\)$/.test(drug))
+      drug=drug.replace(' (หลังยืนยัน restart)',' (เฉพาะเมื่อ restart แล้ว)');
+    if(r.day===2){
+      manage=manage.replace('พิจารณา restart LMWH หลังผ่าตัด 48-72 hr เมื่อไม่มี bleeding/hemostasis ดี และแพทย์ยืนยัน',
+                            'พิจารณา restart LMWH 48–72 hr หลังผ่าตัด หาก hemostasis ดี ไม่มี bleeding และทีมรักษายืนยัน');
+      manage=manage.replace('พิจารณา restart LMWH หลังผ่าตัด >=24 hr เมื่อไม่มี bleeding/hemostasis ดี และแพทย์ยืนยัน',
+                            'พิจารณา restart LMWH ≥24 hr หลังผ่าตัด หาก hemostasis ดี ไม่มี bleeding และทีมรักษายืนยัน');
+    }
+    if(r.day===5 && manage.startsWith('นัด INR 4 วันหลัง restart Warfarin จริง')){
+      manage=manage.replace('นัด INR 4 วันหลัง restart Warfarin จริง (Target INR '+targetInr()+')',
+                            'นัด INR วันที่ 4 หลัง restart Warfarin จริง (หากเริ่มช้า ให้เลื่อนนัดตาม)')
+                   .replace('หยุด LMWH เมื่อ INR therapeutic และแพทย์ยืนยัน',
+                            'หยุด LMWH เมื่อ INR therapeutic และทีมรักษายืนยัน');
+    }
+    return {drug,manage};
+  }
+  function printableRow(r,p,v){
+    const text=a4Text(r,p,v);
+    const signedDay=r.day>0?'+'+r.day:r.day<0?'−'+Math.abs(r.day):'0';
+    const day='<td class="pre-a4-day">'+esc(signedDay)+'</td><td class="pre-a4-date">'+esc(r.date)+'</td>';
+    const tr=r.day===0?'<tr class="pre-a4-procedure">':'<tr>';
+    if(isMergedPostOp(p,r))
+      return tr+day+'<td colspan="2" class="pre-merged-postop">'+esc(text.manage||text.drug).replace(/\n/g,'<br>')+'</td></tr>';
+    return tr+day+'<td>'+esc(text.drug)+'</td><td>'+esc(text.manage).replace(/\n/g,'<br>')+'</td></tr>';
   }
   function buildTable(){
     $('preGrid').classList.remove('hidden');
