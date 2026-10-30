@@ -519,3 +519,27 @@ test('VTE bridging selected reasons remain on unrelated changes and disappear wh
   assert.equal(d.getElementById('preVTEBridgeSelectedStatus').dataset.selected,'0');
   dom.window.close();
 });
+
+test('VTE free-text bridging rationale is optional to checkbox selection, but carries into note and A4',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const set=(id,value)=>{
+    const el=d.getElementById(id);el.value=value;
+    el.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+    el.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  };
+  set('preDrug','warfarin');set('preIndication','vte');
+  set('preProcedure','Thyroidectomy');set('preDate','2026-11-12');
+  set('preAge','67');set('preWeight','70');set('preCrCl','75');
+  set('preWeekly','21');set('preTargetInr','2-3');set('preNeuraxial','no');
+  set('preVTETime','gt12');set('preVTEType','dvt');set('preVTERecur','no');
+  set('preVTEThromb','none');set('preVTECancer','none');set('preVTEClot','no');
+  set('preBridge','yes');
+  assert.equal(d.querySelectorAll('#preVTEBridgeReasonList input:checked').length,0);
+  set('preVTEBridgeRationale','Individual previous event confirmed with treating team');
+  assert.match(d.getElementById('preVTEBridgeSelectedStatus').textContent,/รับเหตุผลเพิ่มเติมแล้ว/);
+  d.getElementById('prePreview').click();
+  assert.doesNotMatch(d.getElementById('preSafety').textContent,/VTE: CHEST 2022/);
+  assert.match(d.getElementById('preOPDNote').value,/Bridging: Yes \(Individual previous event confirmed with treating team\)/);
+  assert.match(d.getElementById('prePrintSurface').textContent,/Bridging:\s*Yes\s*—\s*Individual previous event confirmed with treating team/);
+  dom.window.close();
+});
