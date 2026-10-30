@@ -790,7 +790,8 @@
     const bridgingIsYes=p.anticoagulant==='warfarin' && p.bridgeChoice==='yes';
     const isWarfarin=p.anticoagulant==='warfarin';
     const bridgeReason=bridgingRationale(p,a);
-    const a4BridgeReason=a4Reason(bridgeReason);
+    // Bridging indication retains the complete clinical reason; only the risk-summary label is abbreviated.
+    const a4BridgeReason=bridgeReason;
     const hdr='<h2 class="pre-print-heading">แผนการจัดการยาต้านการแข็งตัวของเลือดก่อนผ่าตัด</h2>'+
       '<div class="pre-print-subheading">PERI-OPERATIVE ANTICOAGULANT MANAGEMENT</div>'+
       '<div class="pre-print-patient pre-a4-patient">'+
