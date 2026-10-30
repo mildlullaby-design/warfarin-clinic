@@ -68,17 +68,40 @@ test('Remove the long CHEST ASRA therapeutic LMWH guidance from the input page',
   const ui=fs.readFileSync(path.join(__dirname,'preop-ui.js'),'utf8');
   assert.doesNotMatch(ui,/preBridgingGuidance|Therapeutic LMWH bridging — CHEST 2022 \/ ASRA 2025/);
 });
-test('A4 bridging footnote restores just the agreed Start Enoxaparin and Neuraxial bullets',()=>{
+test('A4 bridging footnote is compact and conditional on neuraxial (no repeated hold instruction)',()=>{
   const fs=require('node:fs'),path=require('node:path');
   const ui=fs.readFileSync(path.join(__dirname,'preop-ui.js'),'utf8');
   assert.match(ui,/function bridgingFootnoteHtml\(p,v\)/);
-  assert.match(ui,/Start Enoxaparin: เริ่มเมื่อ INR ต่ำกว่า therapeutic range/);
-  assert.match(ui,/Neuraxial: หากมี Spinal\/Epidural หรือ Deep plexus block/);
-  assert.match(ui,/const notes=.*bridgingFootnoteHtml\(p,v\)/);
+  assert.match(ui,/pre-bridging-print pre-bridging-compact/);
+  assert.match(ui,/เริ่ม Enoxaparin เมื่อ INR ต่ำกว่า therapeutic range/);
+  assert.match(ui,/if\(p\.neuraxial==='yes'\)/);
+  assert.match(ui,/ASRA timing และ catheter precautions/);
+  assert.match(ui,/const noteBody=bridgingFootnoteHtml\(p,v\)/);
   assert.match(ui,/\(activePlan\?bridgingFootnoteHtml\(activePlan\.p,activePlan\.v\):''\)/);
-  const listBlock=ui.slice(ui.indexOf('function bridgingFootnoteHtml'),ui.indexOf('function afRecommendationText'));
-  assert.equal((listBlock.match(/'Start Enoxaparin:|'Neuraxial:/g)||[]).length,2);
-  assert.doesNotMatch(listBlock,/['"]Hold enoxaparin|['"]Last dose/);
+  const block=ui.slice(ui.indexOf('function bridgingFootnoteHtml'),ui.indexOf('function afRecommendationText'));
+  assert.equal((block.match(/lines\.push\(/g)||[]).length,1);
+  assert.doesNotMatch(block,/Hold enoxaparin|Last dose|Day -1/);
+});
+test('A4 suppresses duplicate post-op & mechanical INR notes but keeps risk warnings',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const ui=fs.readFileSync(path.join(__dirname,'preop-ui.js'),'utf8');
+  assert.match(ui,/const postopInCalendar=rows\.some\(/);
+  assert.match(ui,/const postopNote=postopInCalendar\?''/);
+  assert.doesNotMatch(ui,/safetyNotes\.push\('<strong>Mechanical valve:<\/strong>/);
+  assert.match(ui,/safetyNotes\.push\('<strong>Risk review:<\/strong>/);
+  assert.match(ui,/safetyNotes\.push\('<strong>Recent VTE:<\/strong>/);
+});
+test('A4 compact footnote uses 9pt while medication grid stays >=10pt',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const css=fs.readFileSync(path.join(__dirname,'styles.css'),'utf8');
+  const marker=css.lastIndexOf('/* Print v4');
+  assert.ok(marker>0,'Final compact-print override missing');
+  const finalCss=css.slice(marker);
+  assert.match(finalCss,/#prePrintExport \.pre-print-notes \.pre-bridging-compact/);
+  assert.match(finalCss,/font-size:9pt!important/);
+  assert.match(finalCss,/#prePrintExport \.pre-print-grid th/);
+  assert.match(finalCss,/font-size:10\.5pt!important/);
+  assert.match(finalCss,/margin: 14mm 14mm/);
 });
 
 test('Assessment UI preserves all original patient/procedure/drug inputs by moving existing nodes',()=>{
