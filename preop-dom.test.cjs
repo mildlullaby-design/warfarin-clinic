@@ -161,3 +161,67 @@ test('Known VTE timing and optional mechanical unknown generation survive naviga
   assert.equal(d.getElementById('preValveGeneration').value,'unknown');
   dom.window.close();
 });
+
+test('AF reason checkbox immediately confirms receipt and maintains selection across unrelated edits',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const set=(id,v)=>{const el=d.getElementById(id);el.value=v;el.dispatchEvent(new dom.window.Event('input',{bubbles:true}));};
+  set('preDrug','warfarin');set('preIndication','af');set('preScore','7');
+  set('preAFStroke','recent');set('preRheumaticMS','yes');set('preBridge','yes');
+  const cb=[...d.querySelectorAll('#preAFBridgeReasonList input')].find(x=>x.value.includes('Recent stroke/TIA'));
+  assert.ok(cb);cb.click();
+  assert.equal(cb.checked,true);
+  assert.match(d.getElementById('preAFBridgeSelectedStatus').textContent,/เลือก Supporting reasons แล้ว 1 ข้อ/);
+  set('preWeight','67');
+  assert.match(d.getElementById('preAFBridgeSelectedStatus').textContent,/1 ข้อ/);
+  set('preAFStroke','none');
+  assert.match(d.getElementById('preAFBridgeSelectedStatus').textContent,/ยังไม่ได้เลือก/);
+  dom.window.close();
+});
+test('Enoxaparin mg/dose is acknowledged, does not reset when unrelated field changes and reset button works',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const set=(id,v)=>{const el=d.getElementById(id);el.value=v;el.dispatchEvent(new dom.window.Event('input',{bubbles:true}));};
+  set('preDrug','warfarin');set('preIndication','af');set('preBridge','yes');
+  set('preWeight','63');set('preCrCl','70');
+  assert.equal(d.getElementById('preLmwhDose').value,'63');
+  set('preLmwhDose','58');
+  assert.match(d.getElementById('preLmwhDoseStatus').textContent,/รับค่า 58 mg\/dose/);
+  assert.equal(d.getElementById('preLmwhDoseStatus').dataset.state,'ready');
+  set('preDate','2026-11-12');
+  assert.equal(d.getElementById('preLmwhDose').value,'58');
+  d.getElementById('preLmwhResetDose').click();
+  assert.equal(d.getElementById('preLmwhDose').value,'63');
+  set('preCrCl','20');
+  assert.equal(d.getElementById('preLmwhDoseStatus').dataset.state,'blocked');
+  assert.match(d.getElementById('preLmwhDoseStatus').textContent,/CrCl 20.0/);
+  dom.window.close();
+});
+test('Selected bridging with non-interrupted Warfarin reports choice and scheduling block instead of No',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const set=(id,v)=>{const el=d.getElementById(id);el.value=v;el.dispatchEvent(new dom.window.Event('change',{bubbles:true}));};
+  set('preDrug','warfarin');set('preIndication','af');
+  set('preProcedure','Cataract surgery');set('preDate','2026-11-12');
+  set('preWeight','70');set('preCrCl','80');set('preScore','7');
+  set('preAFStroke','recent');set('preRheumaticMS','yes');set('preAFClot','no');
+  set('preWeekly','21');set('preTargetInr','2-3');set('preNeuraxial','no');set('preBridge','yes');
+  const cb=d.querySelector('#preAFBridgeReasonList input');cb.click();
+  d.getElementById('prePreview').click();
+  assert.match(d.getElementById('prePlan').textContent,/Bridging decision: Yes selected — not schedulable/);
+  assert.match(d.getElementById('preSafety').textContent,/Bridging cannot be scheduled/);
+  assert.equal(d.getElementById('prePrint').disabled,true);
+  dom.window.close();
+});
+test('Valve and VTE checkbox/select state stays recognized during unrelated changes',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const set=(id,v)=>{const el=d.getElementById(id);el.value=v;el.dispatchEvent(new dom.window.Event('input',{bubbles:true}));};
+  set('preDrug','warfarin');set('preIndication','mechanical');
+  const mitral=d.querySelector('input[name="preValveAt"][value="mitral"]');
+  const lvef=d.querySelector('input[name="preValveFactor"][value="lvef"]');
+  mitral.click();lvef.click();set('preWeight','72');
+  assert.equal(mitral.checked,true);assert.equal(lvef.checked,true);
+  assert.match(d.getElementById('preThromboticResult').textContent,/Mechanical mitral valve/);
+  assert.match(d.getElementById('preThromboticResult').textContent,/LVEF <35%/);
+  set('preIndication','vte');set('preVTETime','lt3');set('preVTEThromb','aps');
+  assert.match(d.getElementById('preThromboticResult').textContent,/Recent VTE/);
+  assert.match(d.getElementById('preThromboticResult').textContent,/Antiphospholipid syndrome/);
+  dom.window.close();
+});
