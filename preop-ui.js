@@ -510,7 +510,7 @@
             ?'Apixaban '+(p.apixDose||'-')+' mg BID'
             :'');
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===1)
-          manage='Suggest restart Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
+          manage='พิจารณา restart Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
             ?dailyFor(day,p.operationDate)+' mg'
             :'ขนาดเดิม')+' เมื่อไม่มี bleeding/hemostasis ดี และแพทย์ยืนยัน';
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===5)
@@ -533,16 +533,16 @@
         }
         if(day===-1){
           manage=eligibleLmwh
-            ? 'Hold enoxaparin at least 24 h before\nsurgery'
+            ? 'หยุด Enoxaparin อย่างน้อย 24 hr ก่อนผ่าตัด'
             :'Bridging requires physician plan: do not administer LMWH pending review';
         }
         if(day>0&&(day===1||day===2||day===3)){
           // Avoid repeatedly printing full-dose therapeutic LMWH as an unconditional postop order.
           if(day===(p.bleedingRisk==='high'?2:1))
-            manage+=(manage?' | ':'')+'LMWH restart only if indicated, >=24 h (low/mod) or 48-72 h (high), hemostasis adequate and treating team confirms';
+            manage+=(manage?' | ':'')+'พิจารณา restart LMWH หลังผ่าตัด '+(p.bleedingRisk==='high'?'48-72 hr':'>=24 hr')+' เมื่อไม่มี bleeding/hemostasis ดี และแพทย์ยืนยัน';
         }
         if(day===5&&p.anticoagulant==='warfarin'&&eligibleLmwh)
-          manage+='; Stop LMWH only once INR therapeutic';
+          manage+='; หยุด LMWH เมื่อ INR therapeutic และแพทย์ยืนยัน';
       }
       if(day===-1){
         const requirement=core.preopInrRequirement({
@@ -550,8 +550,8 @@
         });
         if(requirement){
           const advice=requirement.kind==='neuraxial'
-            ?'Check pre-op INR; keep within local laboratory normal range before neuraxial'
-            :'Check pre-op INR; keep <1.5 for elective major surgery';
+            ?'ตรวจ INR ให้เป็นปกติตาม lab ก่อน neuraxial'
+            :'ตรวจ INR ก่อนผ่าตัด (โดยทั่วไป target <1.5 ตามหัตถการ)';
           // Put separate Day -1 instructions on their own lines, including in A4.
           manage+=(manage?'\n':'')+advice;
         }
@@ -650,10 +650,8 @@
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>วันที่</th><th>ยา</th><th>แผนการรักษา / คำแนะนำ</th></tr></thead><tbody>'+
       rows.map(r=>printableRow(r,p)).join('')+'</tbody></table>';
     const safetyNotes=[];
-    if(p.anticoagulant==='warfarin'&&v.action==='hold'){
-      if(p.neuraxial==='yes') safetyNotes.push('<strong>INR / Neuraxial:</strong> ตรวจ INR ให้ normalized ตามเกณฑ์วิสัญญีก่อน block');
-      else safetyNotes.push('<strong>INR ก่อนผ่าตัด:</strong> เป้าหมายตามหัตถการ (โดยทั่วไป &lt;1.5) ตรวจตามแผนทีมผ่าตัด');
-    }
+    if(p.anticoagulant==='warfarin'&&v.action==='hold'&&p.neuraxial==='yes')
+      safetyNotes.push('<strong>INR / Neuraxial:</strong> วิสัญญียืนยัน INR ปกติตาม local lab ก่อน block');
     if(a.level==='review') safetyNotes.push('<strong>Risk review:</strong> ข้อมูล thrombotic risk ยังไม่ครบ; ต้องให้แพทย์ทบทวนก่อนใช้แผน');
     if(p.indication==='vte'&&['lt1','lt3'].includes(val('preVTETime')))
       safetyNotes.push('<strong>Recent VTE:</strong> ประเมินความจำเป็นของ elective surgery และการเลื่อนผ่าตัด');
