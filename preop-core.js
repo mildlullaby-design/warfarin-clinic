@@ -229,7 +229,7 @@
         sources.add(SOURCES.CHEST);sources.add(SOURCES.ESC);
         if (bleed==='high') restart='Therapeutic LMWH may restart 48–72 h post-op ONLY with adequate hemostasis and surgical-team confirmation.';
         else restart='Therapeutic LMWH may restart no earlier than 24 h post-op ONLY with adequate hemostasis and surgical-team confirmation.';
-        if (p.neuraxial==='yes') { sources.add(SOURCES.ASRA); warnings.push('ASRA: last therapeutic LMWH dose ≥24 h before neuraxial needle placement; verify exact times.'); warnings.push('Handoff to anesthesia: verify last therapeutic LMWH injection, neuraxial needle placement and catheter precautions; clinic plan is NOT a block clearance.'); }
+        if (p.neuraxial==='yes') { sources.add(SOURCES.ASRA); blockers.push('ASRA LMWH neuraxial timing cannot be finalized automatically; request anesthesiology verification.'); warnings.push('ASRA: last therapeutic LMWH dose ≥24 h before neuraxial needle placement; verify exact times.'); warnings.push('Handoff to anesthesia: verify last therapeutic LMWH injection, neuraxial needle placement and catheter precautions; clinic plan is NOT a block clearance.'); }
         if (dose) {
           const doseText=dose.mg.toFixed(1)+' mg ('+dose.volume+' mL) SC q12h';
           for(let offset=-6;offset<=7;offset++) {
@@ -281,9 +281,11 @@
           if(!Number.isFinite(h)) warnings.push('ASRA high-dose Apixaban: exact time not entered (optional); anesthesia team must verify the >=72 h interval and catheter timing before procedure.');
           else if(h<72) warnings.push('ANESTHESIA ALERT: measured high-dose Apixaban interruption <72 h; DO NOT perform neuraxial until anesthesia re-assesses timing.');
           if (Number.isFinite(h) && h>=72)warnings.push('ASRA ≥72 h interruption verified from entered times; anesthesia team must confirm needle/catheter details.');
+          if (Number.isFinite(h) && h<72)blockers.push('ASRA high-dose Apixaban: verified interruption <72 h; cannot finalize neuraxial plan.');
         } else {
           holdDays=Math.max(holdDays,3);
           warnings.push('Anesthesia handoff: Apixaban low/high dose category and catheter timing remain for anesthesiologist; conservative full 3-day hold proposed, NOT neuraxial clearance.');
+          blockers.push('ASRA low-dose Apixaban neuraxial category requires specialist verification before Final.');
         }
       }
       if (action==='continue') instructions.push('Continue usual Apixaban regimen for this minimal-risk procedure unless procedure team directs otherwise.');
@@ -298,7 +300,7 @@
       instructions.push('No routine therapeutic LMWH bridging for Apixaban.');
       if(p.bridgeChoice==='yes')blockers.push('No routine therapeutic LMWH bridging pathway for Apixaban.');
     }
-    if(p.neuraxial!=='no')warnings.push('Anesthesia handoff only: anesthesia team separately determines neuraxial/deep plexus and catheter safety; this clinic anticoagulant plan is NOT clearance for needle placement.');
+    if(p.neuraxial!=='no')warnings.push('ASRA / Anesthesia handoff: anesthesia team separately determines neuraxial/deep plexus and catheter safety; this clinic anticoagulant plan is NOT clearance for needle placement.');
     return {
       action,holdDays,bridging:bridge,dose,days,
       instructions,warnings,blockers,neuraxialNote:NEURAXIAL_NOTE,
