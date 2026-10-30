@@ -899,6 +899,7 @@
     inputScreen.prepend(layout);
 
     const procedure=assessmentSection('01','Procedure & Patient','Operation, bleeding risk และข้อมูลสำหรับ renal assessment');
+    layout.append(procedure); // Keep destination in document while moving existing inputs.
     const procFields=assessmentGrid();
     ['preProcedure','preDate','preTime','preBleed'].forEach(id=>moveExistingField(id,procFields));
     procedure.append(procFields);
@@ -922,15 +923,18 @@
     }
 
     const anticoag=assessmentSection('02','Anticoagulant','เลือกยาที่ใช้อยู่และข้อมูลขนาดยา');
+    layout.append(anticoag);
     const anticoagFields=assessmentGrid();
     ['preDrug','preIndication'].forEach(id=>moveExistingField(id,anticoagFields));
     anticoag.append(anticoagFields,$('preWarfarinFields'),$('preApixFields'));
 
     const riskSection=assessmentSection('03','Thrombotic Risk Assessment','คำถามเปลี่ยนตาม indication โดยไม่ต้องจำระดับ risk เอง');
+    layout.append(riskSection);
     riskSection.append($('preClinicalRisk'));
     restructureMechanicalValve();
 
     const bridging=assessmentSection('04','Bridging Plan','ตัดสินใจแยกจาก thrombotic risk · ไม่สั่ง bridging อัตโนมัติ');
+    layout.append(bridging);
     const bridgeDecision=assessmentGrid();
     moveExistingField('preBridge',bridgeDecision);
     bridging.append(bridgeDecision,$('preBridgeFields'));
@@ -941,6 +945,7 @@
     bridging.append(apixBridgeInfo);
 
     const summary=assessmentSection('05','Risk Summary & Reference','แสดงระดับความเสี่ยงและเหตุผลก่อน Generate Plan');
+    layout.append(summary);
     summary.append($('preThromboticResult'));
     const refDetails=document.createElement('details');
     refDetails.id='preRiskReference';
@@ -955,7 +960,7 @@
     summary.append(guidelineDetails);
     const actions=inputScreen.querySelector('.pre-actions');
     if(actions){actions.classList.add('pre-ui-final-actions');summary.append(actions);}
-    layout.append(procedure,anticoag,riskSection,bridging,summary);
+    // Section cards are already attached to the live document above.
     // The old source grid is empty after fields are moved; never leave a blank gap.
     if(first && !first.children.length)first.remove();
     updateRiskReference();
