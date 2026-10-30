@@ -1868,3 +1868,22 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
   }
   .preop-module #preSafety .pre-unknown-date-info strong{font-weight:700}
 }
+
+/* VTE bridging: AF-like rationale checklist; baseline tier and override remain distinct. */
+@media screen {
+  .preop-module #preVTEBridgeOverride {
+    border:1px solid var(--line,#dfe4ea);
+    border-radius:10px;padding:14px 15px;background:#fbfcfe;margin-top:14px;
+  }
+  .preop-module #preVTEBridgeReasonList {
+    display:grid;gap:7px;margin-bottom:12px;
+  }
+  .preop-module #preVTEBridgeRationale{min-height:64px;resize:vertical;}
+  .preop-module #preVTEBridgeTier,
+  .preop-module .pre-vte-risk-layers{
+    font-size:.84rem;line-height:1.5;color:var(--ink,#25313a);
+    border:1px solid var(--line,#dfe4ea);border-radius:8px;
+    padding:9px 12px;background:#fff;margin:8px 0 12px;
+  }
+  .preop-module .pre-vte-risk-layers{display:grid;gap:3px;}
+}
