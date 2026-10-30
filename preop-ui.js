@@ -234,7 +234,8 @@
     '<input type="number" id="preLmwhDose" min="0.01" step="0.1" placeholder="คำนวณจากน้ำหนัก">'+
     '<small>เริ่มต้น 1 mg/kg/dose SC q12h; ความเข้มข้น 100 mg/mL</small></div>'+
     '<div class="field"><label>ปริมาตรฉีดตามขนาดยาที่เลือก</label><strong id="preLmwhVolume">กรอกน้ำหนักเพื่อคำนวณ</strong>'+
-    '<button type="button" id="preLmwhResetDose">Reset: 1 mg/kg</button></div></div>';
+    '<button type="button" id="preLmwhResetDose">Reset: 1 mg/kg</button></div></div>'+
+    '<p id="preLmwhDoseStatus" class="pre-ui-input-status" role="status" aria-live="polite">ยังไม่ได้ระบุ Enoxaparin mg/dose</p>';
   $('preBridgeFields').append(lmwhDoseWidget);
   let lmwhDoseEdited=false;
   function refreshLmwhDose(){
@@ -245,10 +246,12 @@
     const mg=num('preLmwhDose');
     const d=Number.isFinite(mg)&&mg>0?core.enoxaparin(mg,1):null;
     $('preLmwhVolume').textContent=d?mg+' mg = '+d.volume+' mL SC/dose'+(d.multiAmpoule?' (มากกว่า 1 ampoule)':''):'รอข้อมูลขนาดยา';
+    refreshLmwhStatus();
   }
   $('preLmwhDose').addEventListener('input',()=>{lmwhDoseEdited=true;refreshLmwhDose();});
   $('preLmwhResetDose').onclick=()=>{lmwhDoseEdited=false;refreshLmwhDose();changed();};
   $('preWeight').addEventListener('input',refreshLmwhDose);
+  ['preAge','preSex','preCr','preCrCl'].forEach(id=>$(id).addEventListener('input',refreshLmwhStatus));
   $('preLmwhMgKg').addEventListener('input',()=>{lmwhDoseEdited=false;refreshLmwhDose();});
   refreshLmwhDose();
   // AF bridging suggestion is read-only guideline guidance, not an automatic order.
@@ -260,6 +263,7 @@
   afOverride.innerHTML='<div class="pre-af-bridge-heading"><strong>AF bridging override — เหตุผลสำหรับ individual decision</strong>'+
     '<small>ติ๊กเหตุผลที่ต้องการอ้างอิงจาก Thrombotic Risk Assessment (เลือกได้หลายข้อ)</small></div>'+
     '<div class="field pre-af-bridge-reason-list" id="preAFBridgeReasonList" role="group" aria-label="เลือก Supporting reasons สำหรับ AF bridging"></div>'+
+    '<div id="preAFBridgeSelectedStatus" class="pre-ui-input-status" aria-live="polite">ยังไม่ได้เลือก Supporting reasons</div>'+
     '<div class="field"><label for="preAFBridgeRationale">เหตุผลเพิ่มเติม (Optional)</label>'+
     '<textarea id="preAFBridgeRationale" rows="2" placeholder="เพิ่มเหตุผลเฉพาะรายที่ไม่ได้อยู่ในรายการ"></textarea></div>'+
     '<p class="pre-ui-explainer">การติ๊กเป็นการบันทึกเหตุผลเท่านั้น ไม่ได้เลือก Bridging ให้อัตโนมัติ และ CHA2DS2-VASc อย่างเดียวไม่ใช่ข้อบ่งชี้ Bridging</p>';
@@ -312,13 +316,20 @@
     return [...root.querySelectorAll('input[name="preAFBridgeReason"]:checked')]
       .map(el=>el.value).filter(reason=>available.has(reason));
   }
+  function refreshAfBridgeSelectionStatus(){
+    const el=$('preAFBridgeSelectedStatus');
+    if(!el)return;
+    const n=currentAfBridgeReasons().length;
+    el.textContent=n?'เลือก Supporting reasons แล้ว '+n+' ข้อ (ใช้ใน A4 / OPD Note)':'ยังไม่ได้เลือก Supporting reasons';
+    el.dataset.selected=String(n);
+  }
   function refreshAfBridgeReasons(){
     const el=$('preAFBridgeReasonList');
     if(!el)return;
     const assessment=thromboticAssessment();
     const reasons=val('preIndication')==='af'?assessment.reasons:[];
-    const signature=JSON.stringify(reasons);
-    if(signature===afBridgeReasonSignature)return;
+    const signature=JSON.stringify({level:assessment.level,reasons});
+    if(signature===afBridgeReasonSignature){refreshAfBridgeSelectionStatus();return;}
     const selected=new Set(currentAfBridgeReasons());
     afBridgeReasonSignature=signature;
     el.innerHTML=reasons.length
@@ -328,7 +339,9 @@
           '<input type="checkbox" name="preAFBridgeReason" value="'+esc(reason)+'"'+(selected.has(reason)?' checked':'')+'>'+
           '<span>'+esc(reason)+'</span></label>').join('')
       :'<p class="pre-ui-explainer">กรอก AF Thrombotic Risk Assessment ด้านบนก่อน แล้วเหตุผลจะปรากฏให้เลือกที่นี่</p>';
+    refreshAfBridgeSelectionStatus();
   }
+  $('preAFBridgeReasonList').addEventListener('change',refreshAfBridgeSelectionStatus);
   function afBridgeRationaleParts(){
     const selected=currentAfBridgeReasons();
     const manual=val('preAFBridgeRationale').trim();
@@ -435,8 +448,10 @@
     if(m.includes('weekly dose')||m.includes('warfarin regimen'))return 'preWeekly';
     if(m.includes('apixaban dose')||m.includes('apixaban regimen'))return 'preApixDose';
     if(m.includes('crcl')||m.includes('renal impairment'))return 'preCrCl';
+    if(m.includes('body weight and lmwh dose'))return !val('preLmwhDose')?'preLmwhDose':'preWeight';
     if(m.includes('body weight'))return 'preWeight';
     if(m.includes('lmwh dose'))return 'preLmwhDose';
+    if(m.includes('bridging cannot be scheduled'))return 'preBridge';
     if(m.includes('af: chest')||m.includes('cha2ds2-vasc อย่างเดียว'))return 'preAFBridgeReasonList';
     return null;
   }
@@ -474,7 +489,7 @@
   }
   function switchFields(){
     const drug=val('preDrug'),ind=val('preIndication'),bridge=val('preBridge')==='yes';
-    updateGuidelineSummary();showThrombotic();refreshAfBridgeReasons();
+    updateGuidelineSummary();showThrombotic();refreshAfBridgeReasons();refreshLmwhStatus();
     showAsra();
     $('preWarfarinFields').classList.toggle('hidden',drug!=='warfarin');
     targetWrap.classList.toggle('hidden',val('preTargetInr')!=='other');
@@ -492,6 +507,37 @@
     const apixBridgeInfo=$('preApixBridgeInfo');
     if(apixBridgeInfo)apixBridgeInfo.classList.toggle('hidden',drug!=='apixaban');
     updateRiskReference();
+  }
+  function refreshLmwhStatus(){
+    const status=$('preLmwhDoseStatus');if(!status)return;
+    const mg=num('preLmwhDose'),weight=num('preWeight');
+    const crcl=num('preCrCl');
+    const computed=core.crclCG(val('preAge'),val('preSex'),val('preWeight'),val('preCr'));
+    const renal=Number.isFinite(crcl)?crcl:computed;
+    const drug=val('preDrug'),bridge=val('preBridge');
+    if(drug!=='warfarin'||bridge!=='yes'){
+      status.textContent='Enoxaparin ใช้เฉพาะเมื่อเลือก Warfarin bridging';
+      status.dataset.state='inactive';return;
+    }
+    if(!Number.isFinite(mg)||mg<=0){
+      status.textContent='ยังไม่ได้รับ Enoxaparin mg/dose: กรอกน้ำหนักเพื่อคำนวณหรือระบุ mg/dose';
+      status.dataset.state='missing';return;
+    }
+    if(!Number.isFinite(weight)||weight<=0){
+      status.textContent='รับค่า '+mg+' mg/dose แล้ว แต่ยังไม่มี Actual body weight สำหรับทบทวน dose';
+      status.dataset.state='review';return;
+    }
+    if(!Number.isFinite(renal)||renal<=0){
+      status.textContent='รับค่า '+mg+' mg/dose แล้ว · ยังต้องกรอก CrCl / Age, Sex, Cr สำหรับประเมิน renal function';
+      status.dataset.state='review';return;
+    }
+    if(renal<30){
+      status.textContent='รับค่า '+mg+' mg/dose แล้ว · CrCl '+renal.toFixed(1)+' mL/min (<30): ห้ามสร้าง automatic LMWH order';
+      status.dataset.state='blocked';return;
+    }
+    const vol=core.enoxaparin(mg,1);
+    status.textContent='รับค่า '+mg+' mg/dose ('+(vol?vol.volume+' mL':'ตรวจปริมาตร')+') · CrCl '+renal.toFixed(1)+' mL/min · รอทบทวนแผน';
+    status.dataset.state='ready';
   }
   function hasSafeLmwh(p,v){
     const renal=Number(p.crCl);
@@ -741,7 +787,7 @@
     if(v.warnings.length)$('preSafety').innerHTML+='<div class="pre-clinical-reminders"><h3>Clinical reminders (ไม่ใช่ช่องที่กรอกค้าง)</h3><ul>'+v.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
     const riskSummary=thromboticAssessment();
     $('prePlan').innerHTML='<p><strong>Thrombotic risk:</strong> '+esc(riskSummary.level)+' ('+esc(riskSummary.reasons.join(', ')||'review')+')</p><p><strong>Guideline suggestion:</strong> '+esc(v.action==='continue'?'Continue':v.action==='hold'?'Interrupt / hold '+v.holdDays+' days':'Physician review')+
-      '; Bridging selected: '+esc(v.bridging?'Yes (physician-selected)':'No')+'</p>'+
+      '; Bridging decision: '+esc(p.anticoagulant==='warfarin'?(p.bridgeChoice==='yes'?(v.bridging?'Yes (schedule available)':'Yes selected — not schedulable; review blockers'):'No'):'Not applicable (Apixaban)')+'</p>'+
       (afRecommendationText(p)?'<p class="pre-guideline-advice">'+esc(afRecommendationText(p))+'</p>':'')+
       (bridgeFootnote(p,v)?'<p class="pre-lmwh-footnote">'+esc(bridgeFootnote(p,v))+'</p>':'');
     $('preSources').textContent='References: ISTH SSC 2026; '+v.sources.join(' / ');
