@@ -1817,3 +1817,33 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
     color:var(--muted,#67717d);
   }
 }
+
+
+/* Pre-op optional HN and undated handwritten Draft A4; print surfaces only. */
+#prePrintSurface .pre-a4-patient .pre-header-identity,
+#prePrintExport .pre-a4-patient .pre-header-identity{
+  flex:1 1 auto!important;min-width:0!important;overflow-wrap:anywhere!important;
+}
+#prePrintSurface .pre-a4-patient .pre-header-hn,
+#prePrintExport .pre-a4-patient .pre-header-hn{
+  display:inline-block!important;white-space:nowrap!important;margin-left:3mm!important;
+}
+#prePrintSurface .pre-a4-patient .pre-header-age,
+#prePrintExport .pre-a4-patient .pre-header-age{
+  flex:none!important;white-space:nowrap!important;
+}
+#prePrintSurface .pre-a4-undated-notice,
+#prePrintExport .pre-a4-undated-notice{
+  font-family:"Sarabun","TH Sarabun New",Tahoma,sans-serif!important;
+  font-size:8.4pt!important;line-height:1.22!important;
+  margin:0 0 1.8mm!important;padding:1mm 0!important;
+  border:0!important;color:#333!important;
+}
+#prePrintSurface .pre-a4-undated-notice strong,
+#prePrintExport .pre-a4-undated-notice strong{
+  font-size:8.4pt!important;font-weight:700!important;
+}
+#prePrintSurface .pre-print-grid .pre-a4-date,
+#prePrintExport .pre-print-grid .pre-a4-date{
+  white-space:nowrap!important;
+}
