@@ -1483,3 +1483,44 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
   .preop-module .pre-ui-risk-table th:first-child{width:80px}
   .preop-module .pre-ui-risk-table td{padding:8px}
 }
+
+/* AF bridging override: copy already documented AF risk reasons by checkbox. */
+@media screen {
+  .preop-module #preAFBridgeOverride{
+    border:1px solid var(--line,#dfe4ea);
+    border-radius:10px;
+    padding:14px 15px;
+    background:#fbfcfe;
+    margin-top:14px;
+  }
+  .preop-module .pre-af-bridge-heading{
+    display:flex;flex-direction:column;gap:3px;margin-bottom:12px;
+  }
+  .preop-module .pre-af-bridge-heading strong{font-size:.95rem}
+  .preop-module .pre-af-bridge-heading small{
+    font-size:.8rem;color:var(--muted,#647385);
+  }
+  .preop-module #preAFBridgeReasonList{
+    display:grid;gap:7px;margin-bottom:12px;
+  }
+  .preop-module .pre-af-bridge-reason-meta{
+    display:flex;justify-content:space-between;
+    align-items:center;gap:7px 10px;flex-wrap:wrap;font-size:.83rem;
+  }
+  .preop-module .pre-af-bridge-reason-meta small{color:var(--muted,#697786)}
+  .preop-module .pre-af-bridge-check{
+    display:flex;align-items:flex-start;gap:10px;
+    padding:9px 10px;border:1px solid #dce3ea;
+    border-radius:8px;background:#fff;line-height:1.4;font-size:.87rem;
+    cursor:pointer;
+  }
+  .preop-module .pre-af-bridge-check:has(input:checked){
+    border-color:#9aafc5;background:#f4f8fc;
+  }
+  .preop-module .pre-af-bridge-check input[type=checkbox]{
+    flex:none;margin:3px 0 0;
+  }
+  .preop-module #preAFBridgeRationale{
+    min-height:64px;resize:vertical;
+  }
+}
