@@ -1157,7 +1157,7 @@
       rows:[
         ['Low','VTE >12 เดือน ไม่มี additional risk factors'],
         ['Moderate','VTE 3-12 เดือน, recurrent VTE, non-severe thrombophilia, other active cancer'],
-        ['High','VTE <3 เดือน, severe thrombophilia / APS, selected high VTE-risk active cancer; prior VTE during interruption (clinical override)']
+        ['High','VTE <3 เดือน, severe thrombophilia / APS, selected high VTE-risk active cancer']
       ],
       caveat:'Recent VTE <1 เดือนควรทบทวนความจำเป็นในการเลื่อน elective surgery; prior VTE during interruption เป็น clinical override ไม่ใช่รายการที่แยกไว้ใน CHEST 2022 Table 1 และไม่ทำให้ Bridging อัตโนมัติ'
     }
