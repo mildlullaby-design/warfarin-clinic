@@ -789,7 +789,8 @@
       :'Apixaban '+(p.apixDose||'-')+' mg BID';
     const bridgingIsYes=p.anticoagulant==='warfarin' && p.bridgeChoice==='yes';
     const isWarfarin=p.anticoagulant==='warfarin';
-    const bridgeReason=a4Reason(bridgingRationale(p,a));
+    const bridgeReason=bridgingRationale(p,a);
+    const a4BridgeReason=a4Reason(bridgeReason);
     const hdr='<h2 class="pre-print-heading">แผนการจัดการยาต้านการแข็งตัวของเลือดก่อนผ่าตัด</h2>'+
       '<div class="pre-print-subheading">PERI-OPERATIVE ANTICOAGULANT MANAGEMENT</div>'+
       '<div class="pre-print-patient pre-a4-patient">'+
@@ -802,7 +803,7 @@
       '<div class="pre-header-row"><strong>Bleeding risk:</strong> '+esc(LABEL[p.bleedingRisk]||'Unclassified')+
       ' <span class="pre-header-separator">|</span> <strong>Thrombotic risk:</strong> '+esc(riskLabel+' ('+reasons+')')+'</div>'+
       '<div class="pre-header-row pre-header-bridge"><strong>Bridging:</strong> '+
-      esc(bridgingIsYes?'Yes':'No')+' — '+esc(bridgeReason)+'</div>'+
+      esc(bridgingIsYes?'Yes':'No')+' — '+esc(a4BridgeReason)+'</div>'+
       '<div class="pre-header-row pre-header-renal"><strong>BW:</strong> '+esc(p.weightKg||'-')+' kg'+
       ' <span class="pre-header-separator">|</span> <strong>Cr:</strong> '+esc(val('preCr')||'-')+' mg/dL'+
       ' <span class="pre-header-separator">|</span> <strong>CrCl:</strong> '+esc(p.crCl||'-')+' mL/min</div>'+
