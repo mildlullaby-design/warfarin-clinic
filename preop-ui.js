@@ -236,14 +236,6 @@
     '<div class="field"><label>ปริมาตรฉีดตามขนาดยาที่เลือก</label><strong id="preLmwhVolume">กรอกน้ำหนักเพื่อคำนวณ</strong>'+
     '<button type="button" id="preLmwhResetDose">Reset: 1 mg/kg</button></div></div>';
   $('preBridgeFields').append(lmwhDoseWidget);
-  const bridgingSummary=document.createElement('div');
-  bridgingSummary.className='pre-guideline-summary';
-  bridgingSummary.id='preBridgingGuidance';
-  bridgingSummary.innerHTML='<strong>Therapeutic LMWH bridging — CHEST 2022 / ASRA 2025</strong>'+
-    '<p>ใช้เมื่อแพทย์เลือก bridging หลังประเมิน indication/thrombotic risk; ไม่เป็น routine สำหรับ AF หรือ VTE. ขนาดตัวอย่าง Enoxaparin 1 mg/kg SC q12h เมื่อ renal function เหมาะสม (CrCl &lt;30: no automatic LMWH order). Last dose ≥24 h ก่อนผ่าตัด. Restart หลัง hemostasis adequate: โดยทั่วไป ≥24 h (low/mod) หรือ 48–72 h (high bleeding risk); neuraxial ต้องตรวจ catheter precautions.</p>'+
-    '<a href="https://journal.chestnet.org/article/S0012-3692%2822%2901359-9/abstract" target="_blank" rel="noopener noreferrer">CHEST 2022</a> · '+
-    '<a href="https://rapm.bmj.com/content/early/2025/09/16/rapm-2024-105766" target="_blank" rel="noopener noreferrer">ASRA 2025</a>';
-  $('preBridgeFields').prepend(bridgingSummary);
   let lmwhDoseEdited=false;
   function refreshLmwhDose(){
     if(!lmwhDoseEdited){
@@ -467,7 +459,18 @@
   function bridgeFootnote(p,v){
     if(p.anticoagulant!=='warfarin'||p.bridgeChoice!=='yes') return '';
     if(!hasSafeLmwh(p,v))return 'LMWH bridging ยังไม่พร้อมออกคำสั่ง: ต้องทบทวน renal function, dose และ physician confirmation ก่อน';
-    return 'Bridging note: Start Enoxaparin เมื่อ INR ต่ำกว่า therapeutic range ตามการประเมินของแพทย์ (ไม่สั่งตรวจ INR ทุกวันโดยอัตโนมัติ)';
+    return 'Bridging note: เริ่ม Enoxaparin เมื่อ INR ต่ำกว่า therapeutic range ตามการประเมินของแพทย์ (ไม่จำเป็นต้องตรวจ INR ทุกวันโดยอัตโนมัติ)';
+  }
+  // Agreed A4 footnote: only Start Enoxaparin and Neuraxial bullets.
+  // Last-dose/Day -1 instruction belongs exclusively in the medication calendar.
+  function bridgingFootnoteHtml(p,v){
+    if(!hasSafeLmwh(p,v))return '';
+    const items=[
+      'Start Enoxaparin: เริ่มเมื่อ INR ต่ำกว่า therapeutic range ตามการประเมินของแพทย์ ไม่จำเป็นต้องตรวจ INR ทุกวันโดยอัตโนมัติ',
+      'Neuraxial: หากมี Spinal/Epidural หรือ Deep plexus block ให้ทีมวิสัญญีตรวจสอบ ASRA timing และ catheter precautions เพิ่มเติม'
+    ];
+    return '<div class="pre-bridging-print"><strong>Bridging note:</strong><ul>'+
+      items.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul></div>';
   }
   function afRecommendationText(p){
     if(p.indication!=='af'||p.anticoagulant!=='warfarin')return '';
@@ -489,7 +492,7 @@
       if(day<0){
         if(p.anticoagulant==='warfarin'){
           const dose=dailyFor(day,p.operationDate);
-          const current=Number.isFinite(dose)?(dose===0?'0 mg':dose+' mg'):'ขนาดเดิมตามตารางยา';
+          const current=Number.isFinite(dose)?(dose===0?'0 mg':dose+' mg'):(p.weeklyDose||'-')+' mg/wk';
           drug=holding?'Hold Warfarin':'Warfarin '+current;
         } else {
           drug=holding?'Hold Apixaban':'Apixaban '+(p.apixDose||'-')+' mg BID';
@@ -505,14 +508,14 @@
         drug=p.anticoagulant==='warfarin'
           ?'Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
             ?dailyFor(day,p.operationDate)+' mg'
-            :'ตามตารางยาเดิม')+(v.action==='hold'&&day>1?' (หลังยืนยัน restart)':'')
+            :(p.weeklyDose||'-')+' mg/wk')+(v.action==='hold'&&day>1?' (หลังยืนยัน restart)':'')
           :(v.action==='continue'
             ?'Apixaban '+(p.apixDose||'-')+' mg BID'
             :'');
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===1)
           manage='พิจารณา restart Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
             ?dailyFor(day,p.operationDate)+' mg'
-            :'ขนาดเดิม')+' เมื่อไม่มี bleeding/hemostasis ดี และแพทย์ยืนยัน';
+            :(p.weeklyDose||'-')+' mg/wk')+' เมื่อไม่มี bleeding/hemostasis ดี และแพทย์ยืนยัน';
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===5)
           manage='นัด INR 4 วันหลัง restart Warfarin จริง (Target INR '+targetInr()+')';
         if(p.anticoagulant==='apixaban'&&v.action==='hold'&&((p.bleedingRisk==='high'&&day===2)||(p.bleedingRisk!=='high'&&day===1)))
@@ -622,7 +625,7 @@
     $('preGrid').classList.remove('hidden');
     $('preGrid').innerHTML='<h3>Medication Calendar: Day -7 to +7 (แก้ข้อความในตารางได้)</h3><div class="pre-table-wrap"><table class="pre-edit-grid"><thead><tr><th>Day</th><th>Date (B.E.)</th><th>Anticoagulant</th><th>Management / Suggestion</th></tr></thead><tbody>'+
       rows.map((r,i)=>editableRow(r,i,activePlan.p)).join('')+'</tbody></table></div>'+
-      (activePlan&&bridgeFootnote(activePlan.p,activePlan.v)?'<p class="pre-lmwh-footnote">'+esc(bridgeFootnote(activePlan.p,activePlan.v))+'</p>':'');
+      (activePlan?bridgingFootnoteHtml(activePlan.p,activePlan.v):'');
   }
   const printHtml=(p,v,blocked)=>{
     const a=thromboticAssessment();
@@ -665,7 +668,7 @@
       safetyNotes.push('<strong>Mechanical valve:</strong> พิจารณา INR ก่อนเริ่ม LMWH ตาม ESC/EACTS 2025');
     const warningHtml=(blocked?'<div class="pre-print-warning">DRAFT — รอ physician review / ไม่ใช่คำสั่งให้ยา</div>':'')+
       v.warnings.filter(x=>x.startsWith('ANESTHESIA ALERT:')).map(x=>'<p class="pre-print-warning">'+esc(x)+'</p>').join('');
-    const notes='<div class="pre-print-notes">'+safetyNotes.map(x=>'<p class="pre-print-note">'+x+'</p>').join('')+
+    const notes='<div class="pre-print-notes">'+bridgingFootnoteHtml(p,v)+safetyNotes.map(x=>'<p class="pre-print-note">'+x+'</p>').join('')+
       '<p class="pre-print-note"><strong>Post-op:</strong> Restart anticoagulant เฉพาะเมื่อ hemostasis ดี ไม่มี active bleeding และแพทย์ผู้ดูแลยืนยัน</p>'+
       '</div>';
     const footer='<footer class="pre-print-footer">'+
