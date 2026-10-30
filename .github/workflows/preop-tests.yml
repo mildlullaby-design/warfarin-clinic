@@ -18,4 +18,8 @@ jobs:
           node --check preop-core.js
           node --check preop-ui.js
       - name: Run clinical logic acceptance tests
-        run: node --test preop-core.test.cjs
+        run: node --test preop-core.test.cjs preop-risk.test.cjs
+      - name: Install ephemeral DOM test dependency
+        run: npm install --no-save --no-package-lock --ignore-scripts jsdom@26
+      - name: Run browser-like first-screen DOM smoke test
+        run: node --test preop-dom.test.cjs

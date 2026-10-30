@@ -58,6 +58,87 @@
     return (iso(opDate).getTime()-iso(lastDay).getTime())/3600000+(oh+om/60)-(lh+lm/60);
   }
   const NEURAXIAL_NOTE = 'If spinal/epidural anesthesia or deep plexus block is planned, anesthesia team must verify anticoagulant interruption, normalized INR (Warfarin), LMWH timing (if applicable), and safe restart/catheter precautions per ASRA 2025.';
+
+  // Guideline-based *risk description* only. It never selects or authorizes bridging.
+  // AF: AHA/ACC 2024 Table 14; valve: ESC/EACTS 2025 with explicit local 3-tier display rules;
+  // VTE: AHA/ACC 2024 Table 14 / CHEST 2022.
+  function assessThromboticRisk(p={}) {
+    const reasons=[], notices=[];
+    let level='review', complete=true, source='', baselineLevel=null, clinicalOverride=false;
+    const add=(s)=>{if(s&&!reasons.includes(s))reasons.push(s);};
+    const unknown=(s)=>{complete=false;notices.push(s);};
+    if(p.indication==='af') {
+      source='AHA/ACC 2024 Table 14';
+      const score=number(p.cha2ds2Vasc),stroke=p.strokeTiming,ms=p.rheumaticMS;
+      if(ms==='yes')add('Rheumatic mitral stenosis / valvular AF');
+      if(stroke==='recent')add('Recent stroke/TIA <3 mo');
+      else if(stroke==='remote')add('Prior stroke/TIA >3 mo');
+      if(Number.isInteger(score)&&score>=0&&score<=9){
+        if(score>=7)add('CHA2DS2-VASc '+score+' (>=7)');
+        else if(score>=5)add('CHA2DS2-VASc '+score+' (5-6)');
+        else add('CHA2DS2-VASc '+score);
+      }else unknown('CHA2DS2-VASc missing/invalid');
+      if(!['yes','no'].includes(ms))unknown('Rheumatic MS status unknown');
+      if(!['recent','remote','none'].includes(stroke))unknown('Stroke/TIA history unknown');
+      const high=ms==='yes'||stroke==='recent'||score>=7;
+      if(high)level='high';
+      else if(complete){
+        if(score>=5)level='moderate';
+        else if(stroke==='none')level='low';
+        else {level='review';notices.push('AHA/ACC low tier requires no prior stroke/TIA; remote stroke requires physician review');}
+      }
+      if(stroke==='recent'&&score<5)notices.push('Recent stroke/TIA is a high-risk clinical flag; AHA/ACC Table 14 score-specific AF high tier is >=7 or 5-6 with recent stroke/TIA');
+      if(p.priorPeriopClot==='yes')add('Prior thrombosis during anticoagulant interruption (review)');
+    } else if(p.indication==='mechanical') {
+      source='ESC/EACTS 2025 (local 3-tier display)';
+      const positions=Array.isArray(p.valvePositions)?p.valvePositions:[p.valvePosition].filter(Boolean);
+      const generation=p.valveGeneration,stroke=p.strokeTiming;
+      const factors=Array.isArray(p.valveFactors)?p.valveFactors:[];
+      const names={hyper:'Hypercoagulable state',lvef:'LVEF <35%',ms:'AF with significant mitral stenosis',recent:'Major thrombotic event <12 mo'};
+      if(positions.includes('mitral'))add('Mechanical mitral valve');
+      if(positions.includes('tricuspid'))add('Mechanical tricuspid valve');
+      if(positions.includes('aortic'))add('Mechanical aortic valve');
+      if(generation==='old')add('Older-generation valve (caged-ball / old tilting-disc)');
+      if(stroke==='recent')add('Recent stroke/TIA <3 mo');
+      else if(stroke==='remote')add('Prior stroke/TIA >3 mo');
+      for(const factor of factors){if(names[factor])add(names[factor]+' (additional factor)');}
+      if(!positions.length||positions.includes('unknown'))unknown('Mechanical valve position unknown');
+      if(positions.includes('aortic')&&!['old','modern'].includes(generation))unknown('Aortic valve generation unknown');
+      if(!['recent','remote','none'].includes(stroke))unknown('Stroke/TIA history unknown');
+      const high=positions.includes('mitral')||positions.includes('tricuspid')||generation==='old'||stroke==='recent';
+      if(high)level='high';
+      else if(complete)level=factors.some(x=>names[x])?'moderate':'low';
+      if(!factors.length)notices.push('Additional factors optional: unchecked does not confirm absence');
+      notices.push('ESC/EACTS does not define these exact Low/Moderate/High tiers; 3-tier display is local app policy, not an automatic bridging rule');
+    } else if(p.indication==='vte') {
+      source='AHA/ACC 2024 Table 14 / CHEST 2022';
+      const timing=p.vteTiming,recur=p.vteRecurrent,thromb=p.vteThrombophilia,cancer=p.vteCancer;
+      const timeNames={lt1:'Recent VTE <1 mo',lt3:'Recent VTE 1-<3 mo','3to12':'VTE 3-12 mo',gt12:'VTE >12 mo'};
+      if(timeNames[timing])add(timeNames[timing]); else unknown('VTE onset interval unknown');
+      if(recur==='yes')add('Recurrent VTE');
+      if(thromb==='aps')add('Antiphospholipid syndrome');
+      else if(thromb==='severe')add('Severe thrombophilia');
+      else if(thromb==='nonsevere')add('Non-severe thrombophilia');
+      if(cancer==='high')add('Active cancer with high VTE risk');
+      else if(cancer==='other')add('Other active cancer');
+      if(p.priorPeriopClot==='yes')add('VTE during previous interruption');
+      if(!['yes','no'].includes(recur))unknown('Recurrence history unknown');
+      if(!['none','aps','severe','nonsevere'].includes(thromb))unknown('Thrombophilia history unknown');
+      if(!['none','high','other','history'].includes(cancer))unknown('Cancer history unknown');
+      // Guideline-category VTE risk and exceptional clinical history are distinct.
+      // Prior VTE on VKA interruption is NOT a stand-alone CHEST/AHA Table 1 tier.
+      const guidelineHigh=['lt1','lt3'].includes(timing)||['aps','severe'].includes(thromb)||cancer==='high';
+      baselineLevel=guidelineHigh?'high'
+        :complete?(timing==='3to12'||recur==='yes'||thromb==='nonsevere'||cancer==='other'?'moderate':'low')
+        :'review';
+      clinicalOverride=p.priorPeriopClot==='yes';
+      level=clinicalOverride?'high':baselineLevel;
+      if(p.priorPeriopClot==='yes')notices.push('High-risk clinical override: prior VTE during anticoagulant interruption; review the previous event and bleeding risk, not automatic LMWH bridging');
+      if(['lt1','lt3'].includes(timing))notices.push('Recent VTE: consider postponing elective surgery; physician review required');
+    } else unknown('Indication unknown');
+    return {level,complete,reasons,notices,source,baselineLevel,clinicalOverride};
+  }
+
   // AF: CHEST 2022 strongly recommends against routine perioperative heparin bridging.
   // Recent embolism or thrombosis during interruption warrants individualized review,
   // NOT automatic therapeutic LMWH.
@@ -150,12 +231,12 @@
         if (!dose) blockers.push('Body weight and LMWH dose (mg/kg) required for bridging.');
         if (dose?.needsPrecisionReview) warnings.push('Enoxaparin volume requires preparation precision review; displayed volume does not change prescribed mg.');
         if (dose?.multiAmpoule) warnings.push('More than one single-use 60 mg/0.6 mL ampoule per dose; verify pharmacy preparation.');
-        warnings.push('Pre-op LMWH initiation: obtain INR at clinically selected pre-bridge assessment and begin only when subtherapeutic; do not order daily INR by default.');
+        warnings.push(indication==='mechanical' ? 'ESC/EACTS 2025 mechanical valve: initiate LMWH when INR is subtherapeutic; arrange assessment if using a date-based plan.' : 'INR before starting LMWH may be considered individually; routine daily INR testing is not required.');
         warnings.push('Last pre-op therapeutic LMWH dose approximately 24 h before procedure; verify actual clock time.');
         sources.add(SOURCES.CHEST);sources.add(SOURCES.ESC);
         if (bleed==='high') restart='Therapeutic LMWH may restart 48–72 h post-op ONLY with adequate hemostasis and surgical-team confirmation.';
         else restart='Therapeutic LMWH may restart no earlier than 24 h post-op ONLY with adequate hemostasis and surgical-team confirmation.';
-        if (p.neuraxial==='yes') { sources.add(SOURCES.ASRA); warnings.push('ASRA: last therapeutic LMWH dose ≥24 h before neuraxial needle placement; verify exact times.'); warnings.push('Handoff to anesthesia: verify last therapeutic LMWH injection, neuraxial needle placement and catheter precautions; clinic plan is NOT a block clearance.'); }
+        if (p.neuraxial==='yes') { sources.add(SOURCES.ASRA); blockers.push('ASRA LMWH neuraxial timing cannot be finalized automatically; request anesthesiology verification.'); warnings.push('ASRA: last therapeutic LMWH dose ≥24 h before neuraxial needle placement; verify exact times.'); warnings.push('Handoff to anesthesia: verify last therapeutic LMWH injection, neuraxial needle placement and catheter precautions; clinic plan is NOT a block clearance.'); }
         if (dose) {
           const doseText=dose.mg.toFixed(1)+' mg ('+dose.volume+' mL) SC q12h';
           for(let offset=-6;offset<=7;offset++) {
@@ -207,9 +288,11 @@
           if(!Number.isFinite(h)) warnings.push('ASRA high-dose Apixaban: exact time not entered (optional); anesthesia team must verify the >=72 h interval and catheter timing before procedure.');
           else if(h<72) warnings.push('ANESTHESIA ALERT: measured high-dose Apixaban interruption <72 h; DO NOT perform neuraxial until anesthesia re-assesses timing.');
           if (Number.isFinite(h) && h>=72)warnings.push('ASRA ≥72 h interruption verified from entered times; anesthesia team must confirm needle/catheter details.');
+          if (Number.isFinite(h) && h<72)blockers.push('ASRA high-dose Apixaban: verified interruption <72 h; cannot finalize neuraxial plan.');
         } else {
           holdDays=Math.max(holdDays,3);
           warnings.push('Anesthesia handoff: Apixaban low/high dose category and catheter timing remain for anesthesiologist; conservative full 3-day hold proposed, NOT neuraxial clearance.');
+          blockers.push('ASRA low-dose Apixaban neuraxial category requires specialist verification before Final.');
         }
       }
       if (action==='continue') instructions.push('Continue usual Apixaban regimen for this minimal-risk procedure unless procedure team directs otherwise.');
@@ -224,7 +307,7 @@
       instructions.push('No routine therapeutic LMWH bridging for Apixaban.');
       if(p.bridgeChoice==='yes')blockers.push('No routine therapeutic LMWH bridging pathway for Apixaban.');
     }
-    if(p.neuraxial!=='no')warnings.push('Anesthesia handoff only: anesthesia team separately determines neuraxial/deep plexus and catheter safety; this clinic anticoagulant plan is NOT clearance for needle placement.');
+    if(p.neuraxial!=='no')warnings.push('ASRA / Anesthesia handoff: anesthesia team separately determines neuraxial/deep plexus and catheter safety; this clinic anticoagulant plan is NOT clearance for needle placement.');
     return {
       action,holdDays,bridging:bridge,dose,days,
       instructions,warnings,blockers,neuraxialNote:NEURAXIAL_NOTE,
@@ -234,5 +317,5 @@
       canFinalize:blockers.length===0 // Final Print click is the explicit clinician confirmation.
     };
   }
-  return Object.freeze({iso,shiftDate,thaiDate,crclCG,enoxaparin,clockHours,afBridgeRecommendation,preopInrRequirement,plan,NEURAXIAL_NOTE,SOURCES});
+  return Object.freeze({iso,shiftDate,thaiDate,crclCG,enoxaparin,clockHours,assessThromboticRisk,afBridgeRecommendation,preopInrRequirement,plan,NEURAXIAL_NOTE,SOURCES});
 });
