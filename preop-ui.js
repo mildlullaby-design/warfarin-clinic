@@ -489,7 +489,7 @@
       if(day<0){
         if(p.anticoagulant==='warfarin'){
           const dose=dailyFor(day,p.operationDate);
-          const current=Number.isFinite(dose)?(dose===0?'0 mg':dose+' mg'):((p.weeklyDose||'-')+' mg/week');
+          const current=Number.isFinite(dose)?(dose===0?'0 mg':dose+' mg'):'ขนาดเดิมตามตารางยา');
           drug=holding?'Hold Warfarin':'Warfarin '+current;
         } else {
           drug=holding?'Hold Apixaban':'Apixaban '+(p.apixDose||'-')+' mg BID';
@@ -505,16 +505,16 @@
         drug=p.anticoagulant==='warfarin'
           ?'Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
             ?dailyFor(day,p.operationDate)+' mg'
-            :(p.weeklyDose||'-')+' mg/week')+(v.action==='hold'&&day>1?' (if restart confirmed)':'')
+            :'ตามตารางยาเดิม')+(v.action==='hold'&&day>1?' (หลังยืนยัน restart)':'')
           :(v.action==='continue'
             ?'Apixaban '+(p.apixDose||'-')+' mg BID'
             :'');
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===1)
           manage='Suggest restart Warfarin '+(Number.isFinite(dailyFor(day,p.operationDate))
             ?dailyFor(day,p.operationDate)+' mg'
-            :(p.weeklyDose||'-')+' mg/week')+' if stable, no bleeding, hemostasis adequate';
+            :'ขนาดเดิม')+' เมื่อไม่มี bleeding/hemostasis ดี และแพทย์ยืนยัน';
         if(p.anticoagulant==='warfarin'&&v.action==='hold'&&day===5)
-          manage='Suggested INR check 4 วันหลัง restart Warfarin, Target INR '+targetInr();
+          manage='นัด INR 4 วันหลัง restart Warfarin จริง (Target INR '+targetInr()+')';
         if(p.anticoagulant==='apixaban'&&v.action==='hold'&&((p.bleedingRisk==='high'&&day===2)||(p.bleedingRisk!=='high'&&day===1)))
           manage='Suggest restart Apixaban '+val('preApixDose')+' mg BID if stable/no bleeding/hemostasis adequate and physician approves';
         if(p.anticoagulant==='apixaban'&&v.action==='hold'&&p.bleedingRisk==='high'&&day===3)
@@ -613,47 +613,65 @@
       (activePlan&&bridgeFootnote(activePlan.p,activePlan.v)?'<p class="pre-lmwh-footnote">'+esc(bridgeFootnote(activePlan.p,activePlan.v))+'</p>':'');
   }
   const printHtml=(p,v,blocked)=>{
-    const hdr='<h2 class="pre-print-heading">PERI-OPERATIVE ANTICOAGULANT MANAGEMENT</h2>'+
-      '<div class="pre-print-patient">Patient: '+esc(val('preName')||'________________')+
-      ' · Age: '+esc(val('preAge')||'____')+' · Operation: '+esc(p.operationDate?core.thaiDate(p.operationDate):'________')+
-      '<br>Indication: '+esc(LABEL[p.indication]||'-')+' · Anticoagulant: '+esc(LABEL[p.anticoagulant]||'-')+
-      ' · Procedure: '+esc(p.procedure||'-')+
-      '<br>Bleeding risk: '+esc(LABEL[p.bleedingRisk]||'-')+
-      ' · Cr: '+esc(val('preCr')||'-')+' mg/dL'+
-      ' · BW: '+esc(p.weightKg||'-')+' kg'+
-      ' · CrCl: '+esc(p.crCl||'-')+' mL/min'+
-      (p.indication==='mechanical'?' · Valve: '+esc(selectedValues('preValveAt').join('+')||'Unknown'):'')+
-      (p.anticoagulant==='warfarin'?' · Warfarin '+esc(p.weeklyDose)+' mg/wk · Target INR '+esc(targetInr()):' · Apixaban '+esc(p.apixDose)+' mg BID')+
+    const a=thromboticAssessment();
+    const riskLabel=a.level==='review'?'Needs review':a.level[0].toUpperCase()+a.level.slice(1);
+    const reasons=a.reasons.join(', ') || 'ต้องทบทวนข้อมูล';
+    const indicationName=LABEL[p.indication]||'-';
+    const valveName=p.indication==='mechanical'?' ('+selectedValues('preValveAt').map(x=>x[0].toUpperCase()+x.slice(1)).join(' + ')+')':'';
+    const anticoagName=p.anticoagulant==='warfarin'
+      ?'Warfarin '+(p.weeklyDose||'-')+' mg/wk (Target INR '+targetInr()+')'
+      :'Apixaban '+(p.apixDose||'-')+' mg BID';
+    const bridgingIsYes=p.anticoagulant==='warfarin' && p.bridgeChoice==='yes';
+    const isWarfarin=p.anticoagulant==='warfarin';
+    const afRationale=val('preAFBridgeRationale').trim();
+    const bridgeReason=isWarfarin
+      ?(bridgingIsYes
+        ?(afRationale?afRationale:'แพทย์ยืนยันหลังประเมิน thrombotic/bleeding risk: '+reasons)
+        :(a.level==='low'?'Low thrombotic risk; ไม่ทำ routine bridging':
+          'แพทย์เลือก No bridging หลังประเมิน thrombotic/bleeding risk ('+reasons+')'))
+      :'Apixaban: ไม่แนะนำ routine therapeutic LMWH bridging';
+    const headerLine=(label,value)=>'<div class="pre-header-row"><strong>'+label+'</strong> '+esc(value)+'</div>';
+    const hdr='<h2 class="pre-print-heading">แผนการจัดการยาต้านการแข็งตัวของเลือดก่อนผ่าตัด</h2>'+
+      '<div class="pre-print-subheading">PERI-OPERATIVE ANTICOAGULANT MANAGEMENT</div>'+
+      '<div class="pre-print-patient">'+
+      headerLine('ชื่อผู้ป่วย:',val('preName')||'........................................................')+
+      '<div class="pre-header-row"><strong>อายุ:</strong> '+esc(val('preAge')||'____')+' ปี</div>'+
+      '<div class="pre-header-row pre-header-procedure"><strong>Operation:</strong> '+esc(p.procedure||'-')+
+        ' <span class="pre-header-date"><strong>วันที่:</strong> '+esc(p.operationDate?core.thaiDate(p.operationDate):'-')+'</span></div>'+
+      headerLine('Indication:',indicationName+valveName+' | Anticoagulant: '+anticoagName)+
+      '<div class="pre-header-row"><strong>Bleeding risk:</strong> '+esc(LABEL[p.bleedingRisk]||'Unclassified')+
+      ' <span class="pre-header-separator">|</span> <strong>Thrombotic risk:</strong> '+esc(riskLabel+' ('+reasons+')')+'</div>'+
+      '<div class="pre-header-row pre-header-bridge"><strong>Bridging:</strong> '+
+      esc(bridgingIsYes?'Yes':'No')+' — '+esc(bridgeReason)+'</div>'+
+      '<div class="pre-header-row pre-header-renal"><strong>BW:</strong> '+esc(p.weightKg||'-')+' kg'+
+      ' <span class="pre-header-separator">|</span> <strong>Cr:</strong> '+esc(val('preCr')||'-')+' mg/dL'+
+      ' <span class="pre-header-separator">|</span> <strong>CrCl:</strong> '+esc(p.crCl||'-')+' mL/min</div>'+
       '</div>';
-    const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>Date</th><th>Drug</th><th>Management / Suggestion</th></tr></thead><tbody>'+
+    const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>วันที่</th><th>ยา</th><th>แผนการรักษา / คำแนะนำ</th></tr></thead><tbody>'+
       rows.map(r=>printableRow(r,p)).join('')+'</tbody></table>';
-    const inrTarget=core.preopInrRequirement({anticoagulant:p.anticoagulant,action:v.action,neuraxial:p.neuraxial});
-    const anesthesiaAlerts=v.warnings.filter(x=>x.startsWith('ANESTHESIA ALERT:'));
-    const bridgingText=bridgeFootnote(p,v);
-    const bridgingPrint=bridgingText
-      ?'<p class="pre-print-note pre-bridging-inline"><strong>Bridging note:</strong> '+
-        esc(bridgingText.replace(/^Bridging note:\s*/i,''))+'</p>'
-      :'';
-    const inrPrint=inrTarget
-      ?'<p class="pre-print-note"><strong>INR ก่อนผ่าตัด:</strong> '+esc(inrTarget.kind==='neuraxial'
-        ?'อยู่ในช่วงปกติของห้องปฏิบัติการ'
-        :'<1.5 (หากไม่ถึงเกณฑ์ ให้ปรึกษาทีมผ่าตัดก่อนดำเนินการ)')+'</p>'
-      :'';
-    const warn=(blocked?'<p class="pre-print-warning">DRAFT - NOT FOR MEDICATION ORDERS. Pending review.</p>':'')+
-      anesthesiaAlerts.map(x=>'<p class="pre-print-warning">'+esc(x)+'</p>').join('')+
-      '<section class="pre-print-notes">'+
-        inrPrint+
-        bridgingPrint+
-        '<p class="pre-print-note"><strong>Post-op actions:</strong> Conditional on adequate hemostasis, no active bleeding and treating physician confirmation. Suggested dates are not automatic orders.</p>'+
-      '</section>';
+    const safetyNotes=[];
+    if(p.anticoagulant==='warfarin'&&v.action==='hold'){
+      if(p.neuraxial==='yes') safetyNotes.push('<strong>INR / Neuraxial:</strong> ตรวจ INR ให้ normalized ตามเกณฑ์วิสัญญีก่อน block');
+      else safetyNotes.push('<strong>INR ก่อนผ่าตัด:</strong> เป้าหมายตามหัตถการ (โดยทั่วไป &lt;1.5) ตรวจตามแผนทีมผ่าตัด');
+    }
+    if(a.level==='review') safetyNotes.push('<strong>Risk review:</strong> ข้อมูล thrombotic risk ยังไม่ครบ; ต้องให้แพทย์ทบทวนก่อนใช้แผน');
+    if(p.indication==='vte'&&['lt1','lt3'].includes(val('preVTETime')))
+      safetyNotes.push('<strong>Recent VTE:</strong> ประเมินความจำเป็นของ elective surgery และการเลื่อนผ่าตัด');
+    if(isWarfarin&&bridgingIsYes&&p.indication==='mechanical')
+      safetyNotes.push('<strong>Mechanical valve:</strong> พิจารณา INR ก่อนเริ่ม LMWH ตาม ESC/EACTS 2025');
+    const warningHtml=(blocked?'<div class="pre-print-warning">DRAFT — รอ physician review / ไม่ใช่คำสั่งให้ยา</div>':'')+
+      v.warnings.filter(x=>x.startsWith('ANESTHESIA ALERT:')).map(x=>'<p class="pre-print-warning">'+esc(x)+'</p>').join('');
+    const notes='<div class="pre-print-notes">'+safetyNotes.map(x=>'<p class="pre-print-note">'+x+'</p>').join('')+
+      '<p class="pre-print-note"><strong>Post-op:</strong> Restart anticoagulant เฉพาะเมื่อ hemostasis ดี ไม่มี active bleeding และแพทย์ผู้ดูแลยืนยัน</p>'+
+      '</div>';
     const footer='<footer class="pre-print-footer">'+
       '<div class="pre-signature-block">'+
-      '<div class="pre-signature-line">ลงชื่อ ............................................................</div>'+
+      '<div class="pre-signature-line">ลงชื่อ ........................................................</div>'+
       '<div class="pre-signature-name">('+esc(val('prePhysician')||'........................................................')+')</div>'+
       '<div class="pre-signature-date">วันที่ ............ / ............ / ............</div>'+
       '</div>'+
-      '<small class="pre-reference-line">Clinical draft references: ISTH SSC 2026; ESC/EACTS 2025; ESC AF 2024; CHEST 2022; JAMA 2024; ASRA 2025. Validate locally.</small></footer>';
-    return hdr+tbl+warn+footer;
+      '<small class="pre-reference-line">Clinical reference: AHA/ACC 2024; ESC/EACTS 2025; CHEST 2022; ISTH SSC 2026; ASRA 2025 · Clinical review required</small></footer>';
+    return hdr+tbl+warningHtml+notes+footer;
   };
   function renderPlan(){
     const {p,v,blockers}=plan();
