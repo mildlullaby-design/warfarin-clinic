@@ -225,3 +225,25 @@ test('Valve and VTE checkbox/select state stays recognized during unrelated chan
   assert.match(d.getElementById('preThromboticResult').textContent,/Antiphospholipid syndrome/);
   dom.window.close();
 });
+
+test('Risk summary acknowledges AF entries, differentiates missing inputs, and never claims selection was lost',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const set=(id,v)=>{const el=d.getElementById(id);el.value=v;el.dispatchEvent(new dom.window.Event('input',{bubbles:true}));};
+  set('preIndication','af');set('preScore','5');set('preAFStroke','recent');
+  let status=d.getElementById('preThromboticResult').textContent;
+  assert.match(status,/รับข้อมูลแล้ว 2\/4 ช่อง/);
+  assert.match(status,/ยังไม่ระบุ: Rheumatic MS, Prior thrombosis during interruption/);
+  set('preRheumaticMS','yes');set('preAFClot','unknown');
+  status=d.getElementById('preThromboticResult').textContent;
+  assert.match(status,/รับข้อมูลแล้ว 4\/4 ช่อง/);
+  assert.match(status,/ครบทุกช่องที่ต้องเลือก/);
+  dom.window.close();
+});
+test('Free-text AF rationale is acknowledged even without a selected checkbox',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const set=(id,v)=>{const el=d.getElementById(id);el.value=v;el.dispatchEvent(new dom.window.Event('input',{bubbles:true}));};
+  set('preDrug','warfarin');set('preIndication','af');set('preBridge','yes');
+  set('preAFBridgeRationale','Physician-specific rationale noted');
+  assert.match(d.getElementById('preAFBridgeSelectedStatus').textContent,/รับเหตุผลเพิ่มเติมแล้ว/);
+  dom.window.close();
+});
