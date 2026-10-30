@@ -38,6 +38,16 @@
   const esc=v=>str(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const val=id=>str($(id)?.value).trim(), checked=id=>!!$(id)?.checked;
   const num=id=>val(id)===''?NaN:Number(val(id));
+  const UNKNOWN_DATE_BLOCKER='Operation date missing: DRAFT only, no final dated orders.';
+  const surgeryDateUnknown=()=>checked('preDateUnknown')&&!val('preDate');
+  function syncUnknownDate(){
+    const date=$('preDate'),unknown=checked('preDateUnknown');
+    if(unknown)date.value='';
+    date.disabled=unknown;
+    date.closest('.field')?.classList.toggle('pre-date-is-unknown',unknown);
+  }
+  $('preDateUnknown').addEventListener('change',syncUnknownDate);
+  syncUnknownDate();
   const dateAt=(date,offset)=>date?core.thaiDate(core.shiftDate(date,offset)):'';
   let revision=0,activePlan=null,rows=[],mappedProcedure=false,rendering=false;
   // A dedicated top-level print host prevents hidden screens / app layout
@@ -402,7 +412,7 @@
     return {
       anticoagulant:val('preDrug'),indication,procedure:val('preProcedure'),
       bleedingRisk:val('preBleed'), // Procedure bleeding risk is independent of anesthesia technique.
-      operationDate:val('preDate'),operationTime:val('preTime'),crCl,weightKg:wt,
+      operationDate:checked('preDateUnknown')?'':val('preDate'),operationTime:val('preTime'),crCl,weightKg:wt,
       weeklyDose:val('preWeekly'),apixDose:val('preApixDose'),neuraxial:val('preNeuraxial'),
       valvePosition:vs.includes('mitral')?'mitral':vs.includes('tricuspid')?'tricuspid':vs.includes('aortic')?'aortic':'',
       valveRiskFactors:vf.some(x=>x!=='unknown')?'yes':'no',recentStroke:recent?'yes':'no',
@@ -720,7 +730,10 @@
       out.push('Plan: '+(v.action==='hold'?'หยุด Apixaban ตั้งแต่ '+dt(sd(-v.holdDays)):'พิจารณา continue')+', no routine bridging');
       out.push('Post-op: พิจารณา restart Apixaban เมื่อไม่มี bleeding/hemostasis ดี และแพทย์ยืนยัน');
     }
-    if(blockers.length)out.push('DRAFT - รอทบทวน: '+blockers.join('; '));
+    const undated=surgeryDateUnknown();
+    const actionable=undated?blockers.filter(x=>x!==UNKNOWN_DATE_BLOCKER):blockers;
+    if(actionable.length)out.push('DRAFT - รอทบทวน: '+actionable.join('; '));
+    if(undated)out.push('DRAFT - ยังไม่ทราบวันผ่าตัด ต้องระบุวันที่ก่อนใช้เป็นแผนยา');
     return out.join('\n');
   };
   function isMergedPostOp(p,r){
@@ -858,16 +871,24 @@
   function renderPlan(){
     const {p,v,blockers}=plan();
     activePlan={p,v,blockers};rows=makeRows(p,v);
-    $('preStatus').textContent=blockers.length?'DRAFT - รอ Physician Review':'พร้อมให้แพทย์ยืนยัน Final';
-    $('preStatus').className='pre-status'+(blockers.length?' blocked':'');
-    highlightReviewFields(p,blockers);
-    $('preSafety').classList.toggle('pre-blocking',blockers.length>0);
-    $('preSafety').innerHTML=blockers.length
-      ?'<h3>! ต้องแก้ไขก่อน Final ('+blockers.length+' รายการ)</h3><p class="pre-safety-guide">ช่องที่ต้องกรอก/ทบทวนมีกรอบสีแดงในหน้า Assessment กด "ไปกรอก" เพื่อแก้ไขได้ทันที</p><ul>'+
-        blockers.map(x=>'<li><span>'+esc(x)+'</span>'+
+    const undated=surgeryDateUnknown();
+    // The clinical engine still blocks Final Print without a date.
+    // The explicit unknown-date choice makes this an informational Draft state,
+    // not a spurious missing-input error.
+    const actionable=undated?blockers.filter(x=>x!==UNKNOWN_DATE_BLOCKER):blockers;
+    $('preStatus').textContent=actionable.length?'DRAFT - รอ Physician Review':
+      undated?'DRAFT — ยังไม่ทราบวันผ่าตัด · วันที่ใน A4 เว้นว่าง':
+      blockers.length?'DRAFT - รอ Physician Review':'พร้อมให้แพทย์ยืนยัน Final';
+    $('preStatus').className='pre-status'+(actionable.length?' blocked':'');
+    highlightReviewFields(p,actionable);
+    $('preSafety').classList.toggle('pre-blocking',actionable.length>0);
+    const dateInfo=undated?'<p class="pre-unknown-date-info"><strong>ยังไม่ทราบวันผ่าตัด:</strong> วันที่ใน A4 เว้นว่างทุกแถว สามารถพิมพ์ Draft เพื่อกรอกวันที่เองได้ แต่ไม่อนุญาต Final Print จนกว่าจะระบุวันผ่าตัด</p>':'';
+    $('preSafety').innerHTML=(actionable.length
+      ?'<h3>! ต้องแก้ไขก่อน Final ('+actionable.length+' รายการ)</h3><p class="pre-safety-guide">ช่องที่ต้องกรอก/ทบทวนมีกรอบสีแดงในหน้า Assessment กด "ไปกรอก" เพื่อแก้ไขได้ทันที</p><ul>'+
+        actionable.map(x=>'<li><span>'+esc(x)+'</span>'+
           (issueTarget(x)?'<button type="button" class="pre-goto-field" data-fix-input="'+esc(issueTarget(x))+'">ไปกรอก</button>':'')+
           '</li>').join('')+'</ul>'
-      :'<p>ไม่มีข้อมูลที่บังคับทบทวนเพิ่มเติม</p>';
+      :undated?'':'<p>ไม่มีข้อมูลที่บังคับทบทวนเพิ่มเติม</p>')+dateInfo;
     if(v.warnings.length)$('preSafety').innerHTML+='<div class="pre-clinical-reminders"><h3>Clinical reminders (ไม่ใช่ช่องที่กรอกค้าง)</h3><ul>'+v.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
     const riskSummary=thromboticAssessment();
     $('prePlan').innerHTML='<p><strong>Thrombotic risk:</strong> '+esc(riskSummary.level)+' ('+esc(riskSummary.reasons.join(', ')||'review')+')</p><p><strong>Guideline suggestion:</strong> '+esc(v.action==='continue'?'Continue':v.action==='hold'?'Interrupt / hold '+v.holdDays+' days':'Physician review')+
@@ -951,6 +972,7 @@
     });
     $('preLmwhMgKg').value='1';lmwhDoseEdited=false;refreshLmwhDose();$('preDailyTotal').textContent='';mappedProcedure=false;$('preBleed').disabled=false;$('preOtherVerified').checked=false;$('preOtherReviewWrap').classList.add('hidden');
     rows=[];activePlan=null;revision++;
+    syncUnknownDate();
     highlightReviewFields({},[]);
     $('prePrintSurface').innerHTML='';printHost.innerHTML='';$('preOPDNote').value='';$('preCopyStatus').textContent='';$('prePrint').disabled=true;
     resultScreen.classList.add('hidden');inputScreen.classList.remove('hidden');switchFields();
