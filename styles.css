@@ -1782,3 +1782,38 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
     break-inside:avoid!important;page-break-inside:avoid!important;
   }
 }
+
+/* Pre-op Section 04: procedural and thrombotic risk recap (screen-only). */
+@media screen {
+  .preop-module #preBleedingRiskResult {
+    border:1px solid var(--line,#d8dce3);
+    background:var(--panel,#fff);
+    border-radius:10px;
+    padding:14px 17px;
+    margin:0 0 12px;
+    color:var(--ink,#25313a);
+  }
+  .preop-module #preBleedingRiskResult .pre-ui-risk-summary-heading {
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:baseline;
+    flex-wrap:wrap;
+    margin-bottom:8px;
+  }
+  .preop-module #preBleedingRiskResult .pre-ui-risk-summary-value {
+    font-size:.92rem;
+    font-weight:750;
+    overflow-wrap:anywhere;
+  }
+  .preop-module #preBleedingRiskResult .pre-ui-risk-summary-context {
+    font-size:.88rem;
+    margin:0 0 7px;
+    line-height:1.4;
+  }
+  .preop-module #preBleedingRiskResult small {
+    display:block;
+    font-size:.78rem;
+    color:var(--muted,#67717d);
+  }
+}
