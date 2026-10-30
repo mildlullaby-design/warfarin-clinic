@@ -88,10 +88,10 @@ test('Selected AF reasons populate bridging line in A4 and HOSxP OPD Note, witho
   assert.equal(d.getElementById('preAFBridgeRationale').value,'','checkbox alone should suffice');
   d.getElementById('prePreview').click();
   const note=d.getElementById('preOPDNote').value;
-  assert.match(note,/Bridging: Yes \(.*Recent stroke\/TIA.*Rheumatic mitral stenosis.*\)/);
+  assert.match(note,/Bridging: Yes \(.*Rheumatic mitral stenosis.*Recent stroke\/TIA.*\)/);
   assert.ok(!note.includes('physician-reviewed individual decision'));
   const print=d.getElementById('prePrintSurface').textContent;
-  assert.match(print,/Bridging:\s*Yes\s*—\s*Recent stroke\/TIA.*Rheumatic mitral stenosis/);
+  assert.match(print,/Bridging:\s*Yes\s*—\s*Rheumatic mitral stenosis.*Recent stroke\/TIA/);
   dom.window.close();
 });
 test('AF risk data edits remove stale selected bridging checkbox reasons',()=>{
