@@ -73,19 +73,19 @@
 
   const risk=document.createElement('section');risk.className='pre-subsection';risk.id='preClinicalRisk';
   risk.innerHTML='<h3>Thrombotic risk (ตาม Indication)</h3>'+
-  '<div id="preAFExtra" class="hidden"><div class="pre-form-grid"><div class="field"><label for="preScore">CHA2DS2-VA score (กรอกเองได้)</label><input type="number" id="preScore" min="0" max="8" step="1" placeholder="0-8"><details><summary>คำนวณ CHA2DS2-VA</summary><div id="preScoreChoices">'+
+  '<div id="preAFExtra" class="hidden"><div class="pre-form-grid"><div class="field"><label for="preScore">CHA2DS2-VASc score (กรอกเองได้)</label><input type="number" id="preScore" min="0" max="9" step="1" placeholder="0-9"><details><summary>คำนวณ CHA2DS2-VASc</summary><div id="preScoreChoices">'+
   '<label><input type="checkbox" data-points="1"> Heart failure</label><label><input type="checkbox" data-points="1"> Hypertension</label><label><input type="checkbox" data-points="1"> Diabetes</label><label><input type="checkbox" data-points="2"> Prior stroke/TIA</label><label><input type="checkbox" data-points="1"> Vascular disease</label></div>'+
-  '<button type="button" id="preScoreCalc">ใช้คะแนนที่คำนวณจากอายุและโรคร่วม</button></details></div>'+
-  '<div class="field"><label for="preAFStroke">Stroke/TIA/Embolism ล่าสุด</label><select id="preAFStroke"><option value="">เลือก</option><option value="none">ไม่มีประวัติที่ทราบ / ไม่ทราบ</option><option value="recent">ภายใน 3 เดือนก่อนผ่าตัด</option><option value="remote">เกิน 3 เดือน</option></select></div>'+
-  '<div class="field"><label for="preAFClot">เคยเกิด thrombosis ระหว่างหยุด anticoagulant?</label><select id="preAFClot"><option value="">เลือก</option><option value="no">ไม่เคย</option><option value="yes">เคย</option><option value="unknown">ไม่ทราบ</option></select></div></div></div>'+
+  '<label><input type="checkbox" data-points="1"> Female sex</label><button type="button" id="preScoreCalc">ใช้คะแนนที่คำนวณจากอายุและโรคร่วม</button></details></div>'+
+  '<div class="field"><label for="preAFStroke">Stroke/TIA/Embolism ล่าสุด</label><select id="preAFStroke"><option value="">เลือก</option><option value="none">ไม่มีประวัติ</option><option value="unknown">ไม่ทราบ</option><option value="recent">ภายใน 3 เดือนก่อนผ่าตัด</option><option value="remote">เกิน 3 เดือน</option></select></div>'+
+  '<div class="field"><label for="preRheumaticMS">Rheumatic mitral stenosis?</label><select id="preRheumaticMS"><option value="">เลือก</option><option value="no">No</option><option value="yes">Yes</option><option value="unknown">Unknown</option></select></div><div class="field"><label for="preAFClot">เคยเกิด thrombosis ระหว่างหยุด anticoagulant?</label><select id="preAFClot"><option value="">เลือก</option><option value="no">ไม่เคย</option><option value="yes">เคย</option><option value="unknown">ไม่ทราบ</option></select></div></div></div>'+
   '<div id="preValveExtra" class="hidden"><p>Mechanical valve position (เลือกได้หลายตำแหน่ง)</p><div class="pre-checkrow">'+
   '<label><input type="checkbox" name="preValveAt" value="aortic"> Aortic</label><label><input type="checkbox" name="preValveAt" value="mitral"> Mitral</label><label><input type="checkbox" name="preValveAt" value="tricuspid"> Tricuspid</label><label><input type="checkbox" name="preValveAt" value="unknown"> Unknown</label></div>'+
-  '<p class="muted">ไม่ต้องระบุชนิด/รุ่นของ valve; aortic valve ที่ไม่ทราบ generation ต้อง review</p><label>Additional thrombotic risk factors (เลือกได้หลายข้อ)</label><div class="pre-checkrow">'+
+  '<div class="field"><label for="preValveGeneration">Valve generation (AVR)</label><select id="preValveGeneration"><option value="">Unknown</option><option value="modern">Modern bileaflet</option><option value="old">Caged-ball / older tilting-disc</option></select></div><div class="field"><label for="preValveStroke">Stroke/TIA</label><select id="preValveStroke"><option value="">เลือก</option><option value="none">ไม่มี</option><option value="recent">ภายใน 3 เดือน</option><option value="remote">มากกว่า 3 เดือน</option><option value="unknown">ไม่ทราบ</option></select></div><label>Additional prothrombotic factors — ESC 2025 (optional)</label><div class="pre-checkrow">'+
   '<label><input type="checkbox" name="preValveFactor" value="recent"> Major thrombotic event ภายใน 12 เดือน</label>'+
   '<label><input type="checkbox" name="preValveFactor" value="lvef"> LVEF &lt;35%</label>'+
   '<label><input type="checkbox" name="preValveFactor" value="ms"> AF with significant MS</label>'+
   '<label><input type="checkbox" name="preValveFactor" value="hyper"> Hypercoagulable state</label>'+
-  '<label><input type="checkbox" name="preValveFactor" value="unknown"> ไม่ทราบ</label></div></div>'+
+  '<span class="muted">Optional: ไม่ติ๊กไม่ได้แปลว่าไม่มีปัจจัย</span></div></div>'+
   '<div id="preVTEExtra" class="hidden"><div class="pre-form-grid">'+
   '<div class="field"><label for="preVTETime">Time since last VTE</label><select id="preVTETime"><option value="">เลือก</option><option value="lt1">ภายใน 1 เดือน</option><option value="lt3">1 ถึงน้อยกว่า 3 เดือน</option><option value="3to12">3-12 เดือน</option><option value="gt12">มากกว่า 12 เดือน</option><option value="unknown">ไม่ทราบ</option></select></div>'+
   '<div class="field"><label for="preVTEType">Type of VTE</label><select id="preVTEType"><option value="">เลือก</option><option value="dvt">DVT</option><option value="pe">PE</option><option value="both">DVT + PE</option><option value="unknown">ไม่ทราบ</option></select></div>'+
@@ -94,7 +94,7 @@
   '<details><summary>Thrombophilia / Thrombotic risk</summary><table><tr><th>Condition</th><th>Risk feature</th></tr><tr><td>APS, antithrombin/protein C/S deficiency, homozygous/multiple thrombophilia</td><td>High</td></tr><tr><td>Heterozygous FVL / Prothrombin G20210A</td><td>Moderate</td></tr></table><small>CHEST 2022 risk table; does not independently mandate bridging.</small></details></div>'+
   '<div class="field"><label for="preVTECancer">Cancer history</label><select id="preVTECancer"><option value="">เลือก</option><option value="none">ไม่มี Active cancer หรือประวัติภายใน 5 ปี</option><option value="high">Active pancreatic / primary brain / gastric / esophageal cancer / MPN</option><option value="other">Other active cancer</option><option value="history">Cancer history ภายใน 5 ปี (ไม่ active)</option><option value="unknown">ไม่ทราบ</option></select></div>'+
   '<div class="field"><label for="preVTEClot">Previous VTE during anticoagulant interruption</label><select id="preVTEClot"><option value="">เลือก</option><option value="no">ไม่เคย</option><option value="yes">เคย</option><option value="unknown">ไม่ทราบ</option></select></div></div></div>'+
-  '<p class="muted">Risk assessment ตามข้อมูลที่กรอก; โปรดตรวจ guidance ด้านล่างก่อนออกแผน</p>';
+  '<div id="preThromboticResult" class="pre-guideline-summary" aria-live="polite">Risk assessment pending</div>';
   $('preBridgeFields').insertAdjacentElement('beforebegin',risk);
   const guideline=document.createElement('div');
   guideline.id='preRiskGuideline';guideline.className='pre-guideline-summary';
@@ -104,7 +104,7 @@
     const ref='https://journal.chestnet.org/article/S0012-3692%2822%2901359-9/abstract';
     const valveRef='https://academic.oup.com/eurheartj/article/46/44/4635/8234488';
     const el=$('preRiskGuideline');
-    if(ind==='af')el.innerHTML='<strong>AF — CHEST 2022</strong><p>No routine heparin bridging (strong recommendation). Recent stroke/TIA &lt;3 mo หรือ prior thrombosis during interruption: individual review; score อย่างเดียวไม่ใช่คำสั่งให้ bridge.</p><a target="_blank" rel="noopener noreferrer" href="'+ref+'">CHEST 2022</a>';
+    if(ind==='af')el.innerHTML='<strong>AF risk — AHA/ACC 2024; bridging — CHEST 2022</strong><p>No routine heparin bridging (strong recommendation). Recent stroke/TIA &lt;3 mo หรือ prior thrombosis during interruption: individual review; score อย่างเดียวไม่ใช่คำสั่งให้ bridge.</p><a target="_blank" rel="noopener noreferrer" href="'+ref+'">CHEST 2022</a>';
     else if(ind==='mechanical')el.innerHTML='<strong>Mechanical valve — ESC/EACTS 2025</strong><p>Mitral/tricuspid MHV, older valve, LVEF &lt;35%, recent thromboembolism หรือ thrombophilia เพิ่ม thrombotic risk; Major high-bleeding-risk surgery อาจต้อง bridging ตาม risk. ยืนยันตำแหน่ง valve และแผนรายบุคคล.</p><a target="_blank" rel="noopener noreferrer" href="'+valveRef+'">ESC VHD 2025</a>';
     else if(ind==='vte')el.innerHTML='<strong>VTE — CHEST 2022</strong><p>โดยทั่วไป suggest against routine bridging; VTE &lt;3 mo, severe thrombophilia หรือ selected active cancer ให้พิจารณา individual risk review.</p><a target="_blank" rel="noopener noreferrer" href="'+ref+'">CHEST 2022</a>';
     else el.innerHTML='<strong>เลือก Indication ก่อน</strong><p>จะแสดงสรุป guideline สำหรับประเมิน Thrombotic risk</p>';
@@ -291,6 +291,23 @@
   }
   // Other INR target must be a clinically reviewed numeric range, not arbitrary text.
   const targetWrap=$('preTargetInrCustomWrap');
+  function thromboticAssessment(){
+    const ind=val('preIndication');
+    return core.assessThromboticRisk({
+      indication:ind,cha2ds2Vasc:num('preScore'),
+      strokeTiming:ind==='mechanical'?val('preValveStroke'):val('preAFStroke'),
+      rheumaticMS:val('preRheumaticMS'),priorPeriopClot:val('preAFClot'),
+      valvePositions:selectedValues('preValveAt'),valveGeneration:val('preValveGeneration'),
+      valveFactors:selectedValues('preValveFactor'),vteTiming:val('preVTETime'),
+      vteRecurrent:val('preVTERecur'),vteThrombophilia:val('preVTEThromb'),
+      vteCancer:val('preVTECancer'),priorPeriopClot:ind==='vte'?val('preVTEClot'):val('preAFClot')
+    });
+  }
+  function showThrombotic(){
+    const a=thromboticAssessment(),el=$('preThromboticResult');
+    if(el)el.textContent='Thrombotic risk: '+a.level.toUpperCase()+' | '+(a.reasons.join(', ')||'รอข้อมูล')+
+      (a.notices.length?' | '+a.notices.join('; '):'');
+  }
   $('preTargetInr').addEventListener('change',()=>{
     targetWrap.classList.toggle('hidden',val('preTargetInr')!=='other');
   });
@@ -320,18 +337,20 @@
     if(!mappedProcedure && !checked('preOtherVerified'))b.push('Other procedure: แพทย์ต้องยืนยัน bleeding risk ที่ประเมินเองก่อน Final.');
     if(ind==='af'){
       const score=num('preScore');
-      if(!Number.isInteger(score)||score<0||score>8)b.push('ระบุ CHA2DS2-VA score (กรอกเองหรือกดคำนวณ)');
-      if(!val('preAFStroke')||!val('preAFClot'))b.push('กรอกประวัติ Stroke/TIA และ perioperative thrombosis');
+      if(!Number.isInteger(score)||score<0||score>9)b.push('ระบุ CHA2DS2-VASc score (กรอกเองหรือกดคำนวณ)');
+      if(!val('preAFStroke')||!val('preAFClot')||!val('preRheumaticMS'))b.push('กรอกประวัติ Stroke/TIA, rheumatic MS และ perioperative thrombosis');
     }
     if(ind==='mechanical'){
       if(!selectedValues('preValveAt').length)b.push('ระบุตำแหน่ง Mechanical valve');
-      if(p.valvePosition==='aortic')b.push('Aortic MHV ไม่ทราบ valve generation: ต้องยืนยันแผน bridging แบบเฉพาะราย (ไม่ตีความเป็น low risk).');
+      if(selectedValues('preValveAt').includes('aortic')&&!val('preValveGeneration'))b.push('Aortic MHV: ต้องระบุ valve generation');
+      if(!val('preValveStroke'))b.push('Mechanical valve: ต้องระบุ Stroke/TIA');
     }
     if(ind==='vte'){
       for(const [id,title] of [['preVTETime','VTE timing'],['preVTEType','DVT / PE'],['preVTERecur','Recurrent VTE'],['preVTEThromb','Thrombophilia'],['preVTECancer','Cancer history'],['preVTEClot','Previous perioperative VTE']])
         if(!val(id))b.push('กรอก '+title);
       if(['lt1','lt3'].includes(val('preVTETime')))b.push('Recent VTE: elective surgery timing and interruption need individualized physician review.');
     }
+    if(ind&&thromboticAssessment().level==='review')b.push('Thrombotic risk needs review / information incomplete');
     if(p.anticoagulant==='warfarin'&&(!Number.isFinite(num('preWeekly'))||num('preWeekly')<=0))b.push('Warfarin: ระบุ Weekly dose');
     if(p.anticoagulant==='warfarin'&&!validTargetInr())b.push('Target INR: เลือก 2-3, 2.5-3.5 หรือกรอกช่วงตัวเลขที่ถูกต้อง');
     if(p.anticoagulant==='warfarin'&&dailyValues()==='incomplete')b.push('Warfarin regimen รายวัน: ต้องกรอกครบทั้ง 7 วัน หรือเว้นว่างทั้งหมด');
@@ -343,7 +362,7 @@
   }
   // Visual checklist: red controls identify fields that need input/review before Final.
   const REVIEW_FIELDS=['preDrug','preIndication','preProcedure','preBleed','preOtherVerified','preDate',
-    'preScore','preAFStroke','preAFClot','preValveAt','preVTETime',
+    'preScore','preAFStroke','preAFClot','preRheumaticMS','preValveAt','preValveGeneration','preValveStroke','preVTETime',
     'preVTEType','preVTERecur','preVTEThromb','preVTECancer','preVTEClot',
     'preWeekly','preTargetInr','preTargetInrCustom','preApixDose','preCrCl','preWeight',
     'preLmwhDose','preAFBridgeRationale','preRenalHold'];
@@ -357,9 +376,11 @@
     if(m.includes('procedure name'))return 'preProcedure';
     if(m.includes('bleeding risk')||m.includes('other procedure'))return m.includes('other procedure')?'preOtherVerified':'preBleed';
     if(m.includes('operation date')||m.includes('invalid operation'))return 'preDate';
-    if(m.includes('cha2ds2-va'))return 'preScore';
+    if(m.includes('cha2ds2-vasc'))return 'preScore';
     if(m.includes('stroke/tia')&&m.includes('perioperative'))return 'preAFStroke';
-    if(m.includes('mechanical valve')||m.includes('aortic mhv'))return 'preValveAt';
+    if(m.includes('aortic mhv'))return 'preValveGeneration';
+    if(m.includes('mechanical valve:'))return 'preValveStroke';
+    if(m.includes('mechanical valve'))return 'preValveAt';
     if(m.includes('vte timing')||m.includes('recent vte'))return 'preVTETime';
     if(m.includes('dvt / pe'))return 'preVTEType';
     if(m.includes('recurrent vte'))return 'preVTERecur';
@@ -384,9 +405,10 @@
       wrap?.querySelectorAll('.pre-input-error-hint').forEach(x=>x.remove());
     });
     const required=new Set(blockers.map(issueTarget).filter(Boolean));
-    if(p.indication==='af'&&(!val('preAFStroke')||!val('preAFClot'))){
+    if(p.indication==='af'&&(!val('preAFStroke')||!val('preAFClot')||!val('preRheumaticMS'))){
       if(!val('preAFStroke'))required.add('preAFStroke');
       if(!val('preAFClot'))required.add('preAFClot');
+      if(!val('preRheumaticMS'))required.add('preRheumaticMS');
     }
     if(p.anticoagulant==='warfarin'){
       if(!Number.isFinite(num('preWeekly'))||num('preWeekly')<=0)required.add('preWeekly');
@@ -408,7 +430,7 @@
   }
   function switchFields(){
     const drug=val('preDrug'),ind=val('preIndication'),bridge=val('preBridge')==='yes';
-    updateGuidelineSummary();
+    updateGuidelineSummary();showThrombotic();
     showAsra();
     $('preWarfarinFields').classList.toggle('hidden',drug!=='warfarin');
     targetWrap.classList.toggle('hidden',val('preTargetInr')!=='other');
@@ -530,33 +552,24 @@
     return {p,v,blockers:[...v.blockers,...extra]};
   }
   const noteText=(p,v,blockers)=>{
-    const lines=['วางแผน Pre-op anticoagulant'+(blockers.length?' (DRAFT - รอทบทวน)':''),
-      'Indication: '+(LABEL[p.indication]||'-')+', ยา '+(LABEL[p.anticoagulant]||'-'),
-      'Procedure: '+(p.procedure||'-')+'; วันผ่าตัด: '+(p.operationDate||'-'),
-      'Bleeding risk: '+(LABEL[p.bleedingRisk]||'Unclassified')+'; Thrombotic risk: ประเมินตาม indication',
-      'CrCl: '+(p.crCl||'-')+' mL/min',
-      'แผนก่อนผ่าตัด: '+(v.action==='continue'?'continue ยาเดิม':v.action==='hold'?'หยุด '+LABEL[p.anticoagulant]+' ตั้งแต่ Day -'+v.holdDays:'รอ individualized plan')];
+    const a=thromboticAssessment(),sd=day=>p.operationDate?core.shiftDate(p.operationDate,day):'';
+    const dt=x=>x?x.slice(8,10)+'/'+x.slice(5,7)+'/'+String(+x.slice(0,4)+543).slice(-2):'-';
+    const risk=a.level==='review'?'Review':a.level[0].toUpperCase()+a.level.slice(1);
+    const drug=LABEL[p.anticoagulant]||'-';
+    const dosage=p.anticoagulant==='warfarin'?(p.weeklyDose||'-')+' mg/wk, target INR '+targetInr():(p.apixDose||'-')+' mg BID';
+    const out=['Pre-op: '+(LABEL[p.indication]||'-')+' on '+drug+' '+dosage+', '+(p.procedure||'-')+' '+dt(p.operationDate)+' (Bleeding risk: '+(LABEL[p.bleedingRisk]||'-')+')',
+      'Thrombotic risk: '+risk+' ('+(a.reasons.join(', ')||'รอข้อมูล')+')'];
     if(p.anticoagulant==='warfarin'){
-      if(p.indication==='af')lines.push(afRecommendationText(p));
-      lines.push('Warfarin: '+(p.weeklyDose||'-')+' mg/week; Target INR: '+(val('preTargetInr')||'-')+'; Bridging: '+(v.bridging?'conditional LMWH (แพทย์ยืนยันแล้ว)':'ไม่มีแผน bridging'));
-      lines.push('หลังผ่าตัด: พิจารณา restart Warfarin ขนาดเดิม เมื่อ hemostasis adequate, no bleeding และแพทย์ผู้ดูแลยืนยัน');
-      lines.push('เสนอ INR check 4 วันหลัง restart Warfarin จริง; ปรับวันนัดหาก restart ล่าช้า');
+      out.push('Plan: '+(v.action==='hold'&&Number.isInteger(v.holdDays)?'หยุด Warfarin '+dt(sd(-v.holdDays))+'-'+dt(sd(-1)):v.action==='continue'?'Continue Warfarin':'รอ physician review'));
+      out.push('Bridging: '+(p.bridgeChoice==='yes'?'Yes':'No')+' ('+(val('preAFBridgeRationale').trim()||(p.bridgeChoice==='yes'?'physician-reviewed individual decision':'ไม่ทำ routine bridging ตาม risk assessment'))+')');
+      if(p.bridgeChoice==='yes')out.push((hasSafeLmwh(p,v)?'Enoxaparin '+Number(v.dose.mg.toFixed(1))+' mg SC q12h':'Enoxaparin dose pending')+' วันที่ '+dt(sd(-3))+'-'+dt(sd(-2))+', hold 24 hr ก่อนผ่าตัด');
+      out.push('Post-op: พิจารณา restart Warfarin เมื่อไม่มี bleeding/hemostasis ดี, นัด INR หลังเริ่มยา 4 วัน');
     }else{
-      lines.push('Apixaban: '+(p.apixDose||'-')+' mg BID; ไม่ให้ therapeutic bridging เป็น routine');
-      lines.push('หลังผ่าตัด: พิจารณา restart Apixaban ตาม bleeding risk เมื่อ hemostasis adequate และแพทย์ผู้ดูแลยืนยัน');
+      out.push('Plan: '+(v.action==='hold'?'หยุด Apixaban ตั้งแต่ '+dt(sd(-v.holdDays)):'พิจารณา continue')+', no routine bridging');
+      out.push('Post-op: พิจารณา restart Apixaban เมื่อไม่มี bleeding/hemostasis ดี และแพทย์ยืนยัน');
     }
-    const preopInr=core.preopInrRequirement({anticoagulant:p.anticoagulant,action:v.action,neuraxial:p.neuraxial});
-    if(preopInr)lines.push('ก่อนผ่าตัด: '+(preopInr.kind==='neuraxial'
-      ?'INR ต้องอยู่ใน normal range ของ local lab ก่อน neuraxial needle placement (ASRA)'
-      :'ตรวจ INR Day -1, goal INR <1.5; หาก INR >=1.5 ให้ consult surgeon/anesthetist และทบทวนแผน'));
-    if(p.neuraxial!=='no')lines.push('ส่งต่อวิสัญญี: ประเมิน Neuraxial / deep plexus และ catheter safety แยกต่างหาก; แผนยานี้ไม่ใช่การอนุญาตให้ทำ block');
-    if(bridgeFootnote(p,v))lines.push(bridgeFootnote(p,v));
-    if(p.indication==='af'&&p.bridgeChoice==='yes'&&val('preAFBridgeRationale'))
-      lines.push('Individual AF bridging rationale: '+val('preAFBridgeRationale'));
-    if(p.anticoagulant==='warfarin'&&v.action==='hold')
-      lines.push('INR follow-up ต้องนับ 4 วันจากวันที่ restart Warfarin จริง; ถ้า restart ล่าช้าให้ปรับวันตรวจ');
-    if(blockers.length)lines.push('รอทบทวน: '+blockers.join('; '));
-    return lines.join('\n').replace(/[→↑↓≥≤]/g,' ');
+    if(blockers.length)out.push('DRAFT - รอทบทวน: '+blockers.join('; '));
+    return out.join('\n');
   };
   function isMergedPostOp(p,r){
     // Post-op Warfarin and Apixaban use one full-width instruction cell.
@@ -643,7 +656,8 @@
           '</li>').join('')+'</ul>'
       :'<p>ไม่มีข้อมูลที่บังคับทบทวนเพิ่มเติม</p>';
     if(v.warnings.length)$('preSafety').innerHTML+='<div class="pre-clinical-reminders"><h3>Clinical reminders (ไม่ใช่ช่องที่กรอกค้าง)</h3><ul>'+v.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
-    $('prePlan').innerHTML='<p><strong>Guideline suggestion:</strong> '+esc(v.action==='continue'?'Continue':v.action==='hold'?'Interrupt / hold '+v.holdDays+' days':'Physician review')+
+    const riskSummary=thromboticAssessment();
+    $('prePlan').innerHTML='<p><strong>Thrombotic risk:</strong> '+esc(riskSummary.level)+' ('+esc(riskSummary.reasons.join(', ')||'review')+')</p><p><strong>Guideline suggestion:</strong> '+esc(v.action==='continue'?'Continue':v.action==='hold'?'Interrupt / hold '+v.holdDays+' days':'Physician review')+
       '; Bridging selected: '+esc(v.bridging?'Yes (physician-selected)':'No')+'</p>'+
       (afRecommendationText(p)?'<p class="pre-guideline-advice">'+esc(afRecommendationText(p))+'</p>':'')+
       (bridgeFootnote(p,v)?'<p class="pre-lmwh-footnote">'+esc(bridgeFootnote(p,v))+'</p>':'');
@@ -660,8 +674,8 @@
   function refreshRendered(){
     if(!activePlan)return;
     const {p,v,blockers}=activePlan;
-    const significant=rows.filter(r=>r.day===0||r.manage||r.drug.startsWith('Hold')).filter((r,i,a)=>r.day===0||r.manage||!a.slice(0,i).some(x=>x.drug===r.drug));
-    $('preOPDNote').value=noteText(p,v,blockers)+'\n'+significant.map(r=>'Day '+(r.day>0?'+':'')+r.day+': '+[r.drug,r.manage].filter(Boolean).join('; ')).join('\n');
+    // Keep OPD note short; A4 calendar carries detailed daily management.
+    $('preOPDNote').value=noteText(p,v,blockers);
     $('prePrintSurface').innerHTML=printHtml(p,v,true);
     $('prePrintSurface').classList.add('pre-draft');
   }
