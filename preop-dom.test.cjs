@@ -24,12 +24,45 @@ test('Full DOM: assessment initializes five visible section cards (no missing fi
   const doc=dom.window.document;
   const sections=[...doc.querySelectorAll('#preInputScreen #preAssessmentLayout > .pre-ui-section')];
   assert.equal(sections.length,5,'new layout should contain 5 section cards');
-  assert.match(sections.map(s=>s.textContent).join(' / '),/Procedure & Patient[\s\S]+Anticoagulant[\s\S]+Thrombotic Risk[\s\S]+Bridging Plan[\s\S]+Risk Summary/);
+  assert.match(sections.map(s=>s.textContent).join(' / '),/Procedure & Patient[\s\S]+Anticoagulant[\s\S]+Thrombotic Risk[\s\S]+Risk Summary[\s\S]+Bridging Plan/);
   for(const id of ['preProcedure','preDate','preBleed','preName','preWeight','preDrug','preIndication','preBridge','preThromboticResult','prePreview']){
     assert.ok(doc.getElementById(id),'control '+id+' must exist');
     assert.ok(doc.getElementById(id).closest('#preAssessmentLayout'),'control '+id+' must appear in main assessment layout');
   }
   assert.equal(doc.getElementById('preAssessmentLayout').parentElement.id,'preInputScreen');
+  dom.window.close();
+});
+test('Full DOM: step 04 shows both selected risks before step 05 bridging',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const sections=[...d.querySelectorAll('#preAssessmentLayout > .pre-ui-section')];
+  assert.equal(sections.length,5);
+  assert.match(sections[3].textContent,/04\s+Risk Summary & Reference/);
+  assert.match(sections[4].textContent,/05\s+Bridging Plan/);
+  assert.ok(sections[3].contains(d.getElementById('preBleedingRiskResult')));
+  assert.ok(sections[3].contains(d.getElementById('preThromboticResult')));
+  assert.ok(sections[4].contains(d.getElementById('preBridge')));
+  assert.ok(sections[4].contains(d.getElementById('prePreview')));
+  const set=(id,value)=>{
+    const el=d.getElementById(id);
+    el.value=value;
+    el.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  };
+  set('preDrug','warfarin');
+  set('preIndication','af');
+  set('preProcedure','Thyroidectomy');
+  set('preScore','7');
+  set('preAFStroke','none');
+  set('preRheumaticMS','no');
+  set('preAFClot','no');
+  const bleeding=d.getElementById('preBleedingRiskResult').textContent;
+  const thrombotic=d.getElementById('preThromboticResult').textContent;
+  assert.match(bleeding,/High/);
+  assert.match(bleeding,/Thyroidectomy/);
+  assert.match(thrombotic,/HIGH/);
+  assert.match(thrombotic,/CHA2DS2-VASc 7/);
+  set('preProcedure','Cataract surgery');
+  assert.match(d.getElementById('preBleedingRiskResult').textContent,/Minimal/);
+  assert.match(d.getElementById('preBleedingRiskResult').textContent,/Cataract surgery/);
   dom.window.close();
 });
 test('Full DOM: switching indications retains inputs and risk table',()=>{
