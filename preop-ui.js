@@ -515,6 +515,14 @@
         b.push('AF: CHA2DS2-VASc อย่างเดียวไม่เพียงพอ ต้องเพิ่มเหตุผลเฉพาะรายสำหรับ Bridging');
       }
     }
+    if(p.anticoagulant==='warfarin'&&p.bridgeChoice==='yes'&&p.indication==='vte'){
+      const rationale=vteBridgeRationaleParts();
+      if(!rationale.combined){
+        b.push('VTE: CHEST 2022 ไม่แนะนำ routine bridging; ต้องเลือก Supporting reason หรือระบุเหตุผลเฉพาะรายก่อน Final');
+      }else if(!rationale.manual && rationale.selected.every(x=>x==='VTE >12 mo')){
+        b.push('VTE: VTE >12 เดือนอย่างเดียวเป็น baseline Low; ต้องเลือกปัจจัยเสี่ยงเพิ่มเติมหรือระบุเหตุผลเฉพาะราย');
+      }
+    }
     return b;
   }
   // Visual checklist: red controls identify fields that need input/review before Final.
@@ -522,7 +530,7 @@
     'preScore','preAFStroke','preAFClot','preRheumaticMS','preValveAt','preValveGeneration','preValveStroke','preVTETime',
     'preVTEType','preVTERecur','preVTEThromb','preVTECancer','preVTEClot',
     'preWeekly','preTargetInr','preTargetInrCustom','preApixDose','preCrCl','preWeight',
-    'preLmwhDose','preAFBridgeRationale','preRenalHold'];
+    'preLmwhDose','preAFBridgeRationale','preVTEBridgeRationale','preRenalHold'];
   function reviewControl(id){
     return $(id) || (id==='preValveAt'?root.querySelector('input[name="preValveAt"]'):null);
   }
@@ -555,6 +563,7 @@
     if(m.includes('lmwh dose'))return 'preLmwhDose';
     if(m.includes('bridging cannot be scheduled'))return 'preBridge';
     if(m.includes('af: chest')||m.includes('cha2ds2-vasc อย่างเดียว'))return 'preAFBridgeReasonList';
+    if(m.includes('vte: chest')||m.includes('vte >12 เดือนอย่างเดียว'))return 'preVTEBridgeReasonList';
     return null;
   }
   function highlightReviewFields(p,blockers){
@@ -768,6 +777,9 @@
     if(p.indication==='af' && p.bridgeChoice==='yes'){
       return afBridgeRationaleParts().combined || 'ต้องระบุเหตุผลในการ bridging';
     }
+    if(p.indication==='vte' && p.bridgeChoice==='yes'){
+      return vteBridgeRationaleParts().combined || 'ต้องระบุเหตุผลในการ bridging';
+    }
     if(p.bridgeChoice==='yes')return a.reasons.join(', ') || 'ต้องระบุเหตุผลในการ bridging';
     if(p.indication==='af')return 'AF: ไม่แนะนำ routine bridging (CHEST 2022)';
     if(p.indication==='vte')return 'VTE: ไม่แนะนำ routine bridging เป็นหลัก (CHEST 2022)';
@@ -777,7 +789,8 @@
   const noteText=(p,v,blockers)=>{
     const a=thromboticAssessment(),sd=day=>p.operationDate?core.shiftDate(p.operationDate,day):'';
     const dt=x=>x?x.slice(8,10)+'/'+x.slice(5,7)+'/'+String(+x.slice(0,4)+543).slice(-2):'-';
-    const risk=a.level==='review'?'Review':a.level[0].toUpperCase()+a.level.slice(1);
+    const risk=(a.level==='review'?'Review':a.level[0].toUpperCase()+a.level.slice(1))+
+      (p.indication==='vte'&&a.clinicalOverride?' [baseline '+a.baselineLevel+'; clinical override]':'');
     const drug=LABEL[p.anticoagulant]||'-';
     const dosage=p.anticoagulant==='warfarin'?(p.weeklyDose||'-')+' mg/wk, target INR '+targetInr():(p.apixDose||'-')+' mg BID';
     const out=['Pre-op: '+(LABEL[p.indication]||'-')+' on '+drug+' '+dosage+', '+(p.procedure||'-')+' '+dt(p.operationDate)+' (Bleeding risk: '+(LABEL[p.bleedingRisk]||'-')+')',
@@ -865,7 +878,8 @@
   }
   const printHtml=(p,v,blocked,reviewedUndated=false)=>{
     const a=thromboticAssessment();
-    const riskLabel=a.level==='review'?'Needs review':a.level[0].toUpperCase()+a.level.slice(1);
+    const riskLabel=(a.level==='review'?'Needs review':a.level[0].toUpperCase()+a.level.slice(1))+
+      (p.indication==='vte'&&a.clinicalOverride?' [baseline '+a.baselineLevel+'; clinical override]':'');
     // Header-only abbreviations: retain every reason, omit redundant score cutoff.
     const a4Reason=value=>String(value||'')
       .replace(/Rheumatic mitral stenosis \/ valvular AF/g,'Rheumatic MS')
@@ -959,7 +973,9 @@
       :undated?'':'<p>ไม่มีข้อมูลที่บังคับทบทวนเพิ่มเติม</p>')+dateInfo;
     if(v.warnings.length)$('preSafety').innerHTML+='<div class="pre-clinical-reminders"><h3>Clinical reminders (ไม่ใช่ช่องที่กรอกค้าง)</h3><ul>'+v.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
     const riskSummary=thromboticAssessment();
-    $('prePlan').innerHTML='<p><strong>Thrombotic risk:</strong> '+esc(riskSummary.level)+' ('+esc(riskSummary.reasons.join(', ')||'review')+')</p><p><strong>Guideline suggestion:</strong> '+esc(v.action==='continue'?'Continue':v.action==='hold'?'Interrupt / hold '+v.holdDays+' days':'Physician review')+
+    const vteRiskTier=p.indication==='vte'&&riskSummary.clinicalOverride
+      ?' [Baseline '+riskSummary.baselineLevel+'; clinical override: HIGH concern]':'';
+    $('prePlan').innerHTML='<p><strong>Thrombotic risk:</strong> '+esc(riskSummary.level+vteRiskTier)+' ('+esc(riskSummary.reasons.join(', ')||'review')+')</p><p><strong>Guideline suggestion:</strong> '+esc(v.action==='continue'?'Continue':v.action==='hold'?'Interrupt / hold '+v.holdDays+' days':'Physician review')+
       '; Bridging decision: '+esc(p.anticoagulant==='warfarin'?(p.bridgeChoice==='yes'?(v.bridging?'Yes (schedule available)':'Yes selected — not schedulable; review blockers'):'No'):'Not applicable (Apixaban)')+'</p>'+
       (afRecommendationText(p)?'<p class="pre-guideline-advice">'+esc(afRecommendationText(p))+'</p>':'')+
       (bridgeFootnote(p,v)?'<p class="pre-lmwh-footnote">'+esc(bridgeFootnote(p,v))+'</p>':'');
