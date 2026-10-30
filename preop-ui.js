@@ -448,6 +448,9 @@
     $('preVTEExtra').classList.toggle('hidden',ind!=='vte');
     $('preRenalHoldWrap').classList.toggle('hidden',drug!=='apixaban'||!(Number(input().crCl)<30));
     root.querySelectorAll('.pre-conditional-time').forEach(e=>e.classList.toggle('hidden',val('preNeuraxial')!=='yes'));
+    const bridgeDecision=$('preBridge').closest('.field');
+    if(bridgeDecision)bridgeDecision.classList.toggle('hidden',drug!=='warfarin');
+    updateRiskReference();
   }
   function hasSafeLmwh(p,v){
     const renal=Number(p.crCl);
@@ -789,5 +792,168 @@
     alert('Mechanical heart valve ไม่รองรับ DOAC. กรุณาเลือก Warfarin หรือเปลี่ยน indication ตามข้อมูลจริง');
     $('preIndication').value='';
   }});
+
+  // UI-only reflow. Reparent the original input nodes (and listeners), without
+  // cloning, replacing, renaming fields or changing the clinical decision engine.
+  function assessmentSection(number,title,subtitle){
+    const section=document.createElement('section');
+    section.className='pre-ui-section';
+    section.innerHTML='<div class="pre-ui-section-heading">'+
+      '<span class="pre-ui-section-number">'+number+'</span>'+
+      '<div><h3>'+title+'</h3><p>'+subtitle+'</p></div></div>';
+    return section;
+  }
+  function assessmentGrid(){
+    const div=document.createElement('div');
+    div.className='pre-form-grid pre-ui-fields';
+    return div;
+  }
+  function moveExistingField(id,destination){
+    const field=$(id)?.closest('.field');
+    if(!field)throw new Error('Pre-op layout missing input: '+id);
+    destination.append(field);
+  }
+  function restructureMechanicalValve(){
+    const valve=$('preValveExtra');
+    const factorHeading=[...valve.children].find(x=>x.tagName==='LABEL'&&x.textContent.includes('Additional prothrombotic'));
+    if(!factorHeading)throw new Error('Mechanical valve factors heading missing');
+    const primary=document.createElement('div');
+    primary.className='pre-ui-risk-box';
+    primary.innerHTML='<div class="pre-ui-box-title"><strong>A. Primary Risk Criteria</strong>'+
+      '<small>Valve position / generation / Stroke-TIA</small></div>';
+    while(valve.firstChild && valve.firstChild!==factorHeading)primary.append(valve.firstChild);
+    const extra=document.createElement('div');
+    extra.className='pre-ui-risk-box pre-ui-risk-additional';
+    extra.innerHTML='<div class="pre-ui-box-title"><strong>B. Additional Prothrombotic Factors</strong>'+
+      '<small>ESC/EACTS 2025 · Optional · เลือกได้หลายข้อ · ใช้เป็น Supporting reasons</small></div>';
+    while(valve.firstChild)extra.append(valve.firstChild);
+    valve.append(primary,extra);
+    const primaryHelp=document.createElement('p');
+    primaryHelp.className='pre-ui-explainer';
+    primaryHelp.textContent='High-risk criteria (app): Any mechanical MV/TV, older-generation valve หรือ recent stroke/TIA <3 เดือน';
+    primary.append(primaryHelp);
+    const factorsHelp={recent:'Cardioembolic stroke / DVT / PE',lvef:'LV dysfunction',ms:'AF ร่วมกับ significant mitral stenosis',hyper:'Inherited / acquired'};
+    extra.querySelectorAll('input[name="preValveFactor"]').forEach(control=>{
+      const desc=factorsHelp[control.value];
+      if(!desc)return;
+      const hint=document.createElement('small');
+      hint.className='pre-ui-factor-description';
+      hint.textContent=desc;
+      control.closest('label').append(hint);
+    });
+    const note=document.createElement('p');
+    note.className='pre-ui-explainer';
+    note.textContent='การไม่ติ๊ก ไม่ได้ยืนยันว่าไม่มีปัจจัย และการติ๊กไม่ได้เป็นคำสั่งให้ Bridging อัตโนมัติ';
+    extra.append(note);
+  }
+  const RISK_REFERENCE_TABLES={
+    af:{
+      source:'AHA/ACC 2024, Table 14',
+      url:'https://www.jacc.org/doi/10.1016/j.jacc.2024.06.013',
+      rows:[
+        ['Low','CHA2DS2-VASc 1-4 และไม่มี prior stroke/TIA'],
+        ['Moderate','CHA2DS2-VASc 5-6 ไม่มี high-risk feature'],
+        ['High','CHA2DS2-VASc >=7; score 5-6 + recent stroke/TIA; rheumatic valvular AF']
+      ],
+      caveat:'Recent stroke/TIA เป็น high-risk flag ให้ทบทวนเพิ่มเติม (ไม่ใช่คำสั่งให้ Bridging)'
+    },
+    mechanical:{
+      source:'ESC/EACTS 2025 + 3-tier app classification',
+      url:'https://academic.oup.com/eurheartj/article/46/44/4635/8234488',
+      rows:[
+        ['Low','Modern bileaflet mechanical AVR ไม่มี known additional factors'],
+        ['Moderate','Modern AVR + additional prothrombotic factors (requires review)'],
+        ['High','Any mechanical MV/TV, caged-ball / older-generation valve, recent stroke/TIA <3 เดือน']
+      ],
+      caveat:'ESC/EACTS ไม่ได้แบ่งเป็น Low / Moderate / High สามกลุ่มตรงตัว; ระดับนี้เป็นกติกาแสดงผลของแอป'
+    },
+    vte:{
+      source:'CHEST 2022 (corrigendum 2023) / AHA-ACC 2024',
+      url:'https://journal.chestnet.org/article/S0012-3692%2822%2901359-9/abstract',
+      rows:[
+        ['Low','VTE >12 เดือน ไม่มี additional risk factors'],
+        ['Moderate','VTE 3-12 เดือน, recurrent VTE, non-severe thrombophilia, other active cancer'],
+        ['High','VTE <3 เดือน, severe thrombophilia / APS, selected high VTE-risk active cancer']
+      ],
+      caveat:'Recent VTE <1 เดือนควรทบทวนความจำเป็นในการเลื่อน elective surgery'
+    }
+  };
+  function updateRiskReference(){
+    const el=$('preRiskTable');
+    if(!el)return;
+    const data=RISK_REFERENCE_TABLES[val('preIndication')];
+    const wrapper=$('preRiskReference');
+    if(wrapper)wrapper.classList.toggle('hidden',!data);
+    if(!data){el.innerHTML='';return;}
+    el.innerHTML='<table class="pre-ui-risk-table"><thead><tr><th>Risk</th><th>Criteria</th></tr></thead><tbody>'+
+      data.rows.map(([level,criterion])=>'<tr><td><strong class="pre-ui-tier pre-ui-tier-'+level.toLowerCase()+'">'+esc(level)+'</strong></td><td>'+esc(criterion)+'</td></tr>').join('')+
+      '</tbody></table><p class="pre-ui-reference-caveat">'+esc(data.caveat)+'</p>'+
+      '<a href="'+data.url+'" target="_blank" rel="noopener noreferrer">Reference: '+esc(data.source)+'</a>';
+  }
+  function buildAssessmentLayout(){
+    const layout=document.createElement('div');
+    layout.id='preAssessmentLayout';
+    layout.className='pre-ui-layout';
+    inputScreen.prepend(layout);
+
+    const procedure=assessmentSection('01','Procedure & Patient','Operation, bleeding risk และข้อมูลสำหรับ renal assessment');
+    const procFields=assessmentGrid();
+    ['preProcedure','preDate','preTime','preBleed'].forEach(id=>moveExistingField(id,procFields));
+    procedure.append(procFields);
+    const bleedingReference=document.createElement('details');
+    bleedingReference.className='pre-ui-reference';
+    bleedingReference.id='preProcedureReference';
+    bleedingReference.innerHTML='<summary>ดู Procedure Bleeding Risk Table · ISTH 2026 (ค้นหาและเลือกได้)</summary>';
+    bleedingReference.append($('preRiskInline'));
+    procedure.append(bleedingReference);
+    const patientHeading=document.createElement('h4');
+    patientHeading.className='pre-ui-subheading';
+    patientHeading.textContent='Patient & Renal Assessment';
+    procedure.append(patientHeading);
+    const patientFields=assessmentGrid();
+    ['preName','preAge','preSex','preWeight','preCr','preCrCl','preNeuraxial'].forEach(id=>moveExistingField(id,patientFields));
+    procedure.append(patientFields,$('preAsraReview'));
+    const printDetails=[...inputScreen.children].find(x=>x.tagName==='DETAILS'&&x.textContent.includes('Print details'));
+    if(printDetails){
+      printDetails.classList.add('pre-ui-reference');
+      procedure.append(printDetails);
+    }
+
+    const anticoag=assessmentSection('02','Anticoagulant','เลือกยาที่ใช้อยู่และข้อมูลขนาดยา');
+    const anticoagFields=assessmentGrid();
+    ['preDrug','preIndication'].forEach(id=>moveExistingField(id,anticoagFields));
+    anticoag.append(anticoagFields,$('preWarfarinFields'),$('preApixFields'));
+
+    const riskSection=assessmentSection('03','Thrombotic Risk Assessment','คำถามเปลี่ยนตาม indication โดยไม่ต้องจำระดับ risk เอง');
+    riskSection.append($('preClinicalRisk'));
+    restructureMechanicalValve();
+
+    const bridging=assessmentSection('04','Bridging Plan','ตัดสินใจแยกจาก thrombotic risk · ไม่สั่ง bridging อัตโนมัติ');
+    const bridgeDecision=assessmentGrid();
+    moveExistingField('preBridge',bridgeDecision);
+    bridging.append(bridgeDecision,$('preBridgeFields'));
+
+    const summary=assessmentSection('05','Risk Summary & Reference','แสดงระดับความเสี่ยงและเหตุผลก่อน Generate Plan');
+    summary.append($('preThromboticResult'));
+    const refDetails=document.createElement('details');
+    refDetails.id='preRiskReference';
+    refDetails.className='pre-ui-reference';
+    refDetails.innerHTML='<summary>ดูเกณฑ์ Low / Moderate / High ตาม Indication</summary>'+
+      '<div id="preRiskTable" class="pre-ui-table-wrap"></div>';
+    summary.append(refDetails);
+    const guidelineDetails=document.createElement('details');
+    guidelineDetails.className='pre-ui-reference pre-ui-guideline-details';
+    guidelineDetails.innerHTML='<summary>Guideline consideration · Bridging review</summary>';
+    guidelineDetails.append($('preRiskGuideline'));
+    summary.append(guidelineDetails);
+    const actions=inputScreen.querySelector('.pre-actions');
+    if(actions){actions.classList.add('pre-ui-final-actions');summary.append(actions);}
+    layout.append(procedure,anticoag,riskSection,bridging,summary);
+    // The old source grid is empty after fields are moved; never leave a blank gap.
+    if(first && !first.children.length)first.remove();
+    updateRiskReference();
+  }
+  buildAssessmentLayout();
+
   switchFields();
 })();
