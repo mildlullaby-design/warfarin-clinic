@@ -58,8 +58,8 @@
   printHost.setAttribute('aria-label','Final anticoagulant plan for printing');
   document.body.append(printHost);
   window.addEventListener('afterprint',()=>{printHost.innerHTML='';});
-  function printPlan(p,v,draft){
-    const html=printHtml(p,v,draft);
+  function printPlan(p,v,draft,reviewedUndated=false){
+    const html=printHtml(p,v,draft,reviewedUndated);
     printHost.innerHTML=html;
     $('prePrintSurface').innerHTML=html;
     $('prePrintSurface').classList.toggle('pre-draft',draft);
@@ -731,7 +731,7 @@
       out.push('Post-op: พิจารณา restart Apixaban เมื่อไม่มี bleeding/hemostasis ดี และแพทย์ยืนยัน');
     }
     const undated=surgeryDateUnknown();
-    const actionable=undated?blockers.filter(x=>x!==UNKNOWN_DATE_BLOCKER):blockers;
+    const actionable=remainingPrintBlockers(p,blockers);
     if(actionable.length)out.push('DRAFT - รอทบทวน: '+actionable.join('; '));
     if(undated)out.push('DRAFT - ยังไม่ทราบวันผ่าตัด ต้องระบุวันที่ก่อนใช้เป็นแผนยา');
     return out.join('\n');
@@ -802,7 +802,7 @@
       rows.map((r,i)=>editableRow(r,i,activePlan.p)).join('')+'</tbody></table></div>'+
       (activePlan?bridgingFootnoteHtml(activePlan.p,activePlan.v):'');
   }
-  const printHtml=(p,v,blocked)=>{
+  const printHtml=(p,v,blocked,reviewedUndated=false)=>{
     const a=thromboticAssessment();
     const riskLabel=a.level==='review'?'Needs review':a.level[0].toUpperCase()+a.level.slice(1);
     // Header-only abbreviations: retain every reason, omit redundant score cutoff.
@@ -839,7 +839,9 @@
       ' <span class="pre-header-separator">|</span> <strong>Cr:</strong> '+esc(val('preCr')||'-')+' mg/dL'+
       ' <span class="pre-header-separator">|</span> <strong>CrCl:</strong> '+esc(p.crCl||'-')+' mL/min</div>'+
       '</div>';
-    const dateBlankNotice=p.operationDate?'':'<p class="pre-a4-undated-notice"><strong>ไม่ระบุวันผ่าตัด:</strong> กรุณากรอกวันผ่าตัดและวันที่ทุกแถว (Day −7 ถึง +7) ก่อนใช้แผนนี้ · DRAFT ONLY</p>';
+    const dateBlankNotice=p.operationDate?'':reviewedUndated
+      ?'<p class="pre-a4-undated-notice"><strong>REVIEWED — ยังไม่ทราบวันผ่าตัด:</strong> ต้องกรอกวันผ่าตัดและวันที่ทุกแถว (Day −7 ถึง +7) และตรวจสอบเวลา Hold / Restart ทั้งหมดก่อนนำแผนยาไปใช้ · ยังไม่ใช่คำสั่งยาระบุวันที่</p>'
+      :'<p class="pre-a4-undated-notice"><strong>ไม่ระบุวันผ่าตัด:</strong> กรุณากรอกวันผ่าตัดและวันที่ทุกแถว (Day −7 ถึง +7) ก่อนใช้แผนนี้ · DRAFT ONLY</p>';
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>วันที่</th><th>ยา</th><th>แผนการรักษา / คำแนะนำ</th></tr></thead><tbody>'+
       rows.map(r=>printableRow(r,p,v)).join('')+'</tbody></table>';
     const safetyNotes=[];
@@ -868,6 +870,11 @@
       '<small class="pre-reference-line">Clinical reference: AHA/ACC 2024; ESC/EACTS 2025; CHEST 2022; ISTH SSC 2026; ASRA 2025 · Clinical review required</small></footer>';
     return hdr+dateBlankNotice+tbl+warningHtml+notes+footer;
   };
+  function remainingPrintBlockers(p,blockers){
+    return checked('preDateUnknown')&&!p.operationDate
+      ?blockers.filter(x=>x!==UNKNOWN_DATE_BLOCKER)
+      :blockers;
+  }
   function renderPlan(){
     const {p,v,blockers}=plan();
     activePlan={p,v,blockers};rows=makeRows(p,v);
@@ -882,7 +889,7 @@
     $('preStatus').className='pre-status'+(actionable.length?' blocked':'');
     highlightReviewFields(p,actionable);
     $('preSafety').classList.toggle('pre-blocking',actionable.length>0);
-    const dateInfo=undated?'<p class="pre-unknown-date-info"><strong>ยังไม่ทราบวันผ่าตัด:</strong> วันที่ใน A4 เว้นว่างทุกแถว สามารถพิมพ์ Draft เพื่อกรอกวันที่เองได้ แต่ไม่อนุญาต Final Print จนกว่าจะระบุวันผ่าตัด</p>':'';
+    const dateInfo=undated?'<p class="pre-unknown-date-info"><strong>ยังไม่ทราบวันผ่าตัด:</strong> วันที่ใน A4 เว้นว่างทุกแถว สามารถกด Confirm &amp; Print A4 แบบเว้นวันที่ได้เมื่อผ่านการทบทวนข้อมูลอื่นครบ ต้องกรอกวันที่และตรวจสอบเวลาหยุด/เริ่มยาก่อนนำแผนไปใช้</p>':'';
     $('preSafety').innerHTML=(actionable.length
       ?'<h3>! ต้องแก้ไขก่อน Final ('+actionable.length+' รายการ)</h3><p class="pre-safety-guide">ช่องที่ต้องกรอก/ทบทวนมีกรอบสีแดงในหน้า Assessment กด "ไปกรอก" เพื่อแก้ไขได้ทันที</p><ul>'+
         actionable.map(x=>'<li><span>'+esc(x)+'</span>'+
@@ -903,7 +910,8 @@
     $('preOPDNote').value=noteText(p,v,blockers);
     refreshRendered();
     $('prePrintSurface').classList.add('pre-draft');
-    $('prePrint').disabled=blockers.length>0;
+    $('prePrint').disabled=actionable.length>0;
+    $('prePrint').textContent=undated?'Confirm & Print A4 (เว้นวันที่)':'Confirm & Print Final A4';
   }
   function refreshRendered(){
     if(!activePlan)return;
@@ -950,12 +958,17 @@
     if(!activePlan)return;
     printPlan(activePlan.p,activePlan.v,true);
   };
-  // Clicking this button is the clinician's explicit final confirmation.
-  // Incomplete/unsafe plans still cannot use Final Print.
+  // Deliberately undated plans may be printed only after all OTHER clinical
+  // blockers are resolved; their dates remain blank and need later verification.
   $('prePrint').onclick=()=>{
-    if(!activePlan || activePlan.blockers.length)return;
-    $('preStatus').textContent='Final A4 - physician reviewed';
-    printPlan(activePlan.p,activePlan.v,false);
+    if(!activePlan)return;
+    const {p,v,blockers}=activePlan;
+    if(remainingPrintBlockers(p,blockers).length)return;
+    const reviewedUndated=checked('preDateUnknown')&&!p.operationDate;
+    $('preStatus').textContent=reviewedUndated
+      ?'Reviewed undated A4 — ต้องระบุและตรวจสอบวันที่ก่อนใช้'
+      :'Final A4 - physician reviewed';
+    printPlan(p,v,false,reviewedUndated);
   };
   $('preCopyNote').onclick=async()=>{
     const text=$('preOPDNote').value;
