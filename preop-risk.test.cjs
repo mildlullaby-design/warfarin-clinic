@@ -139,3 +139,16 @@ test('Mechanical valve primary criteria and optional ESC factors are visibly dis
   assert.match(ui,/moveExistingField\('preBridge',bridgeDecision\)/);
   assert.match(ui,/preApixBridgeInfo/);
 });
+
+test('Risk summary occupies step 04 before step 05 bridging, with live procedural risk recap',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const ui=fs.readFileSync(path.join(__dirname,'preop-ui.js'),'utf8');
+  const a=ui.indexOf("assessmentSection('04','Risk Summary & Reference'");
+  const b=ui.indexOf("assessmentSection('05','Bridging Plan'");
+  assert.ok(a>=0&&b>a,'risk recap must precede bridging selection');
+  assert.match(ui,/summary\.append\(bleedingSummary,\$\('preThromboticResult'\)\)/);
+  assert.match(ui,/function updateBleedingRiskSummary\(\)/);
+  assert.match(ui,/updateBleedingRiskSummary\(\);refreshAfBridgeReasons\(\)/);
+  assert.match(ui,/bridging\.append\(actions\)/);
+  assert.doesNotMatch(ui,/summary\.append\(actions\)/);
+});
