@@ -40,6 +40,36 @@ test('Prior VTE during interruption raises moderate category to high and does no
     crCl:75,weightKg:70,bridgeChoice:'no',priorPeriopClot:'yes'});
   assert.equal(plan.bridging,false);
 });
+test('Guideline baseline and clinical override remain separate for VTE >12 months',()=>{
+  const base={indication:'vte',vteTiming:'gt12',vteRecurrent:'no',
+    vteThrombophilia:'none',vteCancer:'none'};
+  const ordinary=risk({...base,priorPeriopClot:'no'});
+  assert.equal(ordinary.level,'low');
+  assert.equal(ordinary.baselineLevel,'low');
+  assert.equal(ordinary.clinicalOverride,false);
+  const exceptional=risk({...base,priorPeriopClot:'yes'});
+  assert.equal(exceptional.baselineLevel,'low');
+  assert.equal(exceptional.level,'high');
+  assert.equal(exceptional.clinicalOverride,true);
+  assert.ok(exceptional.reasons.includes('VTE >12 mo'));
+  assert.ok(exceptional.reasons.includes('VTE during previous interruption'));
+  const moderate=risk({...base,vteRecurrent:'yes',priorPeriopClot:'yes'});
+  assert.equal(moderate.baselineLevel,'moderate');
+  assert.equal(moderate.level,'high');
+  assert.equal(moderate.clinicalOverride,true);
+  const guidelinesHigh=risk({...base,vteTiming:'lt3',priorPeriopClot:'no'});
+  assert.equal(guidelinesHigh.baselineLevel,'high');
+  assert.equal(guidelinesHigh.level,'high');
+  assert.equal(guidelinesHigh.clinicalOverride,false);
+});
+test('VTE bridging checklist and selected reasons are used by print and note without changing the clinical engine',()=>{
+  const ui=require('node:fs').readFileSync(require('node:path').join(__dirname,'preop-ui.js'),'utf8');
+  assert.match(ui,/preVTEBridgeOverride/);
+  assert.match(ui,/preVTEBridgeReasonList/);
+  assert.match(ui,/vteBridgeRationaleParts\(\)\.combined/);
+  assert.match(ui,/clinicalOverride/);
+  assert.match(ui,/Baseline/);
+});
 test('VTE date-category selection does not generate a missing-input blocker',()=>{
   const ui=require('node:fs').readFileSync(require('node:path').join(__dirname,'preop-ui.js'),'utf8');
   assert.match(ui,/\['preVTETime','VTE timing'\]/);
