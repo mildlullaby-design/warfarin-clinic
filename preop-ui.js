@@ -567,16 +567,17 @@
     if(!hasSafeLmwh(p,v))return 'LMWH bridging ยังไม่พร้อมออกคำสั่ง: ต้องทบทวน renal function, dose และ physician confirmation ก่อน';
     return 'Bridging note: เริ่ม Enoxaparin เมื่อ INR ต่ำกว่า therapeutic range ตามการประเมินของแพทย์ (ไม่จำเป็นต้องตรวจ INR ทุกวันโดยอัตโนมัติ)';
   }
-  // Agreed A4 footnote: only Start Enoxaparin and Neuraxial bullets.
-  // Last-dose/Day -1 instruction belongs exclusively in the medication calendar.
+  // Compact A4 footer: avoid duplicating hold timing from the Day -1 calendar.
+  // Show Neuraxial only if relevant; do not imply routine daily INR checks.
   function bridgingFootnoteHtml(p,v){
     if(!hasSafeLmwh(p,v))return '';
-    const items=[
-      'Start Enoxaparin: เริ่มเมื่อ INR ต่ำกว่า therapeutic range ตามการประเมินของแพทย์ ไม่จำเป็นต้องตรวจ INR ทุกวันโดยอัตโนมัติ',
-      'Neuraxial: หากมี Spinal/Epidural หรือ Deep plexus block ให้ทีมวิสัญญีตรวจสอบ ASRA timing และ catheter precautions เพิ่มเติม'
+    const lines=[
+      '<p><strong>Bridging:</strong> เริ่ม Enoxaparin เมื่อ INR ต่ำกว่า therapeutic range ตามแผนแพทย์ (ไม่จำเป็นต้องตรวจ INR ทุกวัน)</p>'
     ];
-    return '<div class="pre-bridging-print"><strong>Bridging note:</strong><ul>'+
-      items.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul></div>';
+    if(p.neuraxial==='yes'){
+      lines.push('<p><strong>Neuraxial:</strong> Spinal/Epidural/Deep plexus: วิสัญญีตรวจ ASRA timing และ catheter precautions</p>');
+    }
+    return '<div class="pre-bridging-print pre-bridging-compact">'+lines.join('')+'</div>';
   }
   function afRecommendationText(p){
     if(p.indication!=='af'||p.anticoagulant!=='warfarin')return '';
@@ -766,18 +767,21 @@
     const tbl='<table class="pre-print-grid"><thead><tr><th>Day</th><th>วันที่</th><th>ยา</th><th>แผนการรักษา / คำแนะนำ</th></tr></thead><tbody>'+
       rows.map(r=>printableRow(r,p)).join('')+'</tbody></table>';
     const safetyNotes=[];
-    if(p.anticoagulant==='warfarin'&&v.action==='hold'&&p.neuraxial==='yes')
+    // The Day -1 calendar already carries the relevant INR/neuraxial check.
+    if(p.anticoagulant==='warfarin'&&v.action==='hold'&&p.neuraxial==='yes' &&
+       !rows.some(r=>r.day===-1 && /INR/i.test(r.manage||'')))
       safetyNotes.push('<strong>INR / Neuraxial:</strong> วิสัญญียืนยัน INR ปกติตาม local lab ก่อน block');
     if(a.level==='review') safetyNotes.push('<strong>Risk review:</strong> ข้อมูล thrombotic risk ยังไม่ครบ; ต้องให้แพทย์ทบทวนก่อนใช้แผน');
     if(p.indication==='vte'&&['lt1','lt3'].includes(val('preVTETime')))
       safetyNotes.push('<strong>Recent VTE:</strong> ประเมินความจำเป็นของ elective surgery และการเลื่อนผ่าตัด');
-    if(isWarfarin&&bridgingIsYes&&p.indication==='mechanical')
-      safetyNotes.push('<strong>Mechanical valve:</strong> พิจารณา INR ก่อนเริ่ม LMWH ตาม ESC/EACTS 2025');
+    // The compact Bridging note already covers INR-based LMWH initiation in MHV.
     const warningHtml=(blocked?'<div class="pre-print-warning">DRAFT — รอ physician review / ไม่ใช่คำสั่งให้ยา</div>':'')+
       v.warnings.filter(x=>x.startsWith('ANESTHESIA ALERT:')).map(x=>'<p class="pre-print-warning">'+esc(x)+'</p>').join('');
-    const notes='<div class="pre-print-notes">'+bridgingFootnoteHtml(p,v)+safetyNotes.map(x=>'<p class="pre-print-note">'+x+'</p>').join('')+
-      '<p class="pre-print-note"><strong>Post-op:</strong> Restart anticoagulant เฉพาะเมื่อ hemostasis ดี ไม่มี active bleeding และแพทย์ผู้ดูแลยืนยัน</p>'+
-      '</div>';
+    const postopInCalendar=rows.some(r=>r.day>0 && /restart/i.test(r.manage||'') && /bleeding|hemostasis/i.test(r.manage||''));
+    const postopNote=postopInCalendar?'':'<p class="pre-print-note"><strong>Post-op:</strong> Restart anticoagulant เฉพาะเมื่อ hemostasis ดี ไม่มี active bleeding และแพทย์ผู้ดูแลยืนยัน</p>';
+    const noteBody=bridgingFootnoteHtml(p,v)+
+      safetyNotes.map(x=>'<p class="pre-print-note">'+x+'</p>').join('')+postopNote;
+    const notes=noteBody?'<div class="pre-print-notes">'+noteBody+'</div>':'';
     const footer='<footer class="pre-print-footer">'+
       '<div class="pre-signature-block">'+
       '<div class="pre-signature-line">ลงชื่อ ........................................................</div>'+
