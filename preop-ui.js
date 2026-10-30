@@ -320,7 +320,9 @@
     const el=$('preAFBridgeSelectedStatus');
     if(!el)return;
     const n=currentAfBridgeReasons().length;
-    el.textContent=n?'เลือก Supporting reasons แล้ว '+n+' ข้อ (ใช้ใน A4 / OPD Note)':'ยังไม่ได้เลือก Supporting reasons';
+    const hasManual=!!val('preAFBridgeRationale').trim();
+    el.textContent=n?'เลือก Supporting reasons แล้ว '+n+' ข้อ'+(hasManual?' และรับเหตุผลเพิ่มเติมแล้ว':'')+' (ใช้ใน A4 / OPD Note)'
+      :hasManual?'รับเหตุผลเพิ่มเติมแล้ว (ยังไม่ได้ติ๊ก Supporting reasons)':'ยังไม่ได้เลือกหรือระบุเหตุผลสำหรับ AF bridging';
     el.dataset.selected=String(n);
   }
   function refreshAfBridgeReasons(){
@@ -352,9 +354,23 @@
     if(!el)return;
     const level=a.level==='review'?'NEEDS REVIEW':a.level.toUpperCase();
     const reasons=a.reasons.length?a.reasons.map(x=>'<li>'+esc(x)+'</li>').join(''):'<li>กรอกข้อมูล indication เพื่อประเมิน</li>';
+    const ind=val('preIndication'),answered=ind==='af'
+      ?[['CHA2DS2-VASc',Number.isInteger(num('preScore'))&&num('preScore')>=0&&num('preScore')<=9],
+         ['Stroke/TIA',!!val('preAFStroke')],['Rheumatic MS',!!val('preRheumaticMS')],['Prior thrombosis during interruption',!!val('preAFClot')]]
+      :ind==='mechanical'
+        ?[['Valve position',selectedValues('preValveAt').length>0],['Stroke/TIA',!!val('preValveStroke')]]
+        :ind==='vte'
+          ?[['VTE interval',!!val('preVTETime')],['DVT/PE',!!val('preVTEType')],['Recurrent VTE',!!val('preVTERecur')],
+             ['Thrombophilia',!!val('preVTEThromb')],['Cancer',!!val('preVTECancer')],['Prior perioperative VTE',!!val('preVTEClot')]]
+          :[];
+    const answeredCount=answered.filter(x=>x[1]).length;
+    const missingInputs=answered.filter(x=>!x[1]).map(x=>x[0]);
+    const inputProgress=answered.length?'<p class="pre-risk-input-progress">'+
+      'รับข้อมูลแล้ว '+answeredCount+'/'+answered.length+' ช่อง'+
+      (missingInputs.length?' · ยังไม่ระบุ: '+esc(missingInputs.join(', ')):' · ครบทุกช่องที่ต้องเลือก')+'</p>':'';
     el.innerHTML='<div class="pre-thrombotic-heading"><span>Thrombotic risk assessment</span>'+
       '<strong class="pre-risk-level pre-risk-'+esc(a.level)+'">'+esc(level)+'</strong></div>'+
-      '<div class="pre-risk-reasons"><b>Supporting reasons</b><ul>'+reasons+'</ul></div>'+
+      inputProgress+'<div class="pre-risk-reasons"><b>Supporting reasons</b><ul>'+reasons+'</ul></div>'+
       (a.notices.length?'<p class="pre-risk-notices">'+esc(a.notices.join('; '))+'</p>':'')+
       '<small>แสดงเหตุผลประกอบ ไม่ใช่คำสั่งให้ Bridging อัตโนมัติ</small>';
   }
