@@ -278,6 +278,16 @@
     '<textarea id="preAFBridgeRationale" rows="2" placeholder="เพิ่มเหตุผลเฉพาะรายที่ไม่ได้อยู่ในรายการ"></textarea></div>'+
     '<p class="pre-ui-explainer">การติ๊กเป็นการบันทึกเหตุผลเท่านั้น ไม่ได้เลือก Bridging ให้อัตโนมัติ และ CHA2DS2-VASc อย่างเดียวไม่ใช่ข้อบ่งชี้ Bridging</p>';
   $('preBridgeFields').append(afOverride);
+  const vteOverride=document.createElement('div');vteOverride.className='pre-subsection hidden';vteOverride.id='preVTEBridgeOverride';
+  vteOverride.innerHTML='<div class="pre-af-bridge-heading"><strong>VTE bridging rationale — individual decision</strong>'+
+    '<small>เลือก Supporting reasons จาก VTE Risk Assessment (ไม่ติ๊กให้อัตโนมัติ)</small></div>'+
+    '<div class="pre-vte-tier-summary" id="preVTEBridgeTier"></div>'+
+    '<div class="field pre-af-bridge-reason-list" id="preVTEBridgeReasonList" role="group" aria-label="เลือก Supporting reasons สำหรับ VTE bridging"></div>'+
+    '<div id="preVTEBridgeSelectedStatus" class="pre-ui-input-status" aria-live="polite">ยังไม่ได้เลือก Supporting reasons</div>'+
+    '<div class="field"><label for="preVTEBridgeRationale">เหตุผลเพิ่มเติม (Optional)</label>'+
+    '<textarea id="preVTEBridgeRationale" rows="2" placeholder="ระบุเหตุผลเฉพาะรายที่ไม่ได้อยู่ในรายการ เช่น ประวัติ VTE เมื่อหยุดยาครั้งก่อน"></textarea></div>'+
+    '<p class="pre-ui-explainer">CHEST 2022 ไม่แนะนำ routine VTE bridging; การติ๊กหรือพิมพ์เหตุผลไม่ใช่คำสั่ง Bridging และต้องชั่ง Bleeding risk ร่วมด้วย</p>';
+  $('preBridgeFields').append(vteOverride);
   function refreshAfAdvice(){
     const selection=core.afBridgeRecommendation({
       recentStroke:val('preAFStroke')==='recent'?'yes':'no',
@@ -359,6 +369,49 @@
     const manual=val('preAFBridgeRationale').trim();
     return {selected,manual,combined:[...selected,...(manual?[manual]:[])].join(', ')};
   }
+  // VTE reasons mirror entered risk facts, but keep a guideline baseline tier
+  // separate from exceptional prior VTE during interruption. No auto-selection.
+  let vteBridgeReasonSignature='';
+  function currentVteBridgeReasons(){
+    const available=new Set(thromboticAssessment().reasons);
+    return [...root.querySelectorAll('input[name="preVTEBridgeReason"]:checked')]
+      .map(el=>el.value).filter(reason=>available.has(reason));
+  }
+  function vteBridgeRationaleParts(){
+    const selected=currentVteBridgeReasons();
+    const manual=val('preVTEBridgeRationale').trim();
+    return {selected,manual,combined:[...selected,...(manual?[manual]:[])].join(', ')};
+  }
+  function refreshVteBridgeSelectionStatus(){
+    const el=$('preVTEBridgeSelectedStatus');if(!el)return;
+    const x=vteBridgeRationaleParts(),n=x.selected.length;
+    el.textContent=n?'เลือก Supporting reasons แล้ว '+n+' ข้อ'+(x.manual?' และรับเหตุผลเพิ่มเติมแล้ว':'')+' (ใช้ใน A4 / OPD Note)'
+      :x.manual?'รับเหตุผลเพิ่มเติมแล้ว':'ยังไม่ได้เลือกหรือระบุเหตุผลสำหรับ VTE bridging';
+    el.dataset.selected=String(n);
+  }
+  function refreshVteBridgeReasons(){
+    const el=$('preVTEBridgeReasonList');if(!el)return;
+    const a=thromboticAssessment();
+    const isVte=val('preIndication')==='vte';
+    const reasons=isVte?a.reasons:[];
+    const baseline=a.baselineLevel||'review';
+    const tier=$('preVTEBridgeTier');
+    tier.textContent=isVte
+      ?'Baseline (guideline): '+baseline.toUpperCase()+' | Clinical override: '+
+        (a.clinicalOverride?'HIGH concern — VTE during previous interruption':'ไม่มีที่ยืนยันจากประวัติ')
+      :'';
+    const signature=JSON.stringify({indication:val('preIndication'),reasons,baseline,override:a.clinicalOverride});
+    if(signature===vteBridgeReasonSignature){refreshVteBridgeSelectionStatus();return;}
+    const selected=new Set(currentVteBridgeReasons());
+    vteBridgeReasonSignature=signature;
+    el.innerHTML=reasons.length
+      ?reasons.map(reason=>'<label class="pre-af-bridge-check">'+
+          '<input type="checkbox" name="preVTEBridgeReason" value="'+esc(reason)+'"'+(selected.has(reason)?' checked':'')+'>'+
+          '<span>'+esc(reason)+'</span></label>').join('')
+      :'<p class="pre-ui-explainer">กรอก VTE Thrombotic Risk Assessment ก่อน แล้วเหตุผลที่ตรงกับข้อมูลจะปรากฏที่นี่</p>';
+    refreshVteBridgeSelectionStatus();
+  }
+  $('preVTEBridgeReasonList').addEventListener('change',refreshVteBridgeSelectionStatus);
   // Live, read-only recap of the procedural risk actually selected in Section 01.
   // No independent classification or modification of anticoagulation decisions.
   function updateBleedingRiskSummary(){
@@ -392,9 +445,16 @@
     const inputProgress=answered.length?'<p class="pre-risk-input-progress">'+
       'รับข้อมูลแล้ว '+answeredCount+'/'+answered.length+' ช่อง'+
       (missingInputs.length?' · ยังไม่ระบุ: '+esc(missingInputs.join(', ')):' · ครบทุกช่องที่ต้องเลือก')+'</p>':'';
+    const vteLayers=ind==='vte'
+      ?'<div class="pre-vte-risk-layers"><div><strong>Guideline baseline:</strong> '+
+        esc((a.baselineLevel||'review').toUpperCase())+'</div>'+
+        '<div><strong>Clinical override:</strong> '+
+        (a.clinicalOverride?'<strong>HIGH concern — VTE during previous interruption</strong>':
+          esc(val('preVTEClot')==='unknown'?'Unknown':val('preVTEClot')==='no'?'None documented':'Not answered'))+
+        '</div></div>':'';
     el.innerHTML='<div class="pre-thrombotic-heading"><span>Thrombotic risk assessment</span>'+
       '<strong class="pre-risk-level pre-risk-'+esc(a.level)+'">'+esc(level)+'</strong></div>'+
-      inputProgress+'<div class="pre-risk-reasons"><b>Supporting reasons</b><ul>'+reasons+'</ul></div>'+
+      inputProgress+vteLayers+'<div class="pre-risk-reasons"><b>Supporting reasons</b><ul>'+reasons+'</ul></div>'+
       (a.notices.length?'<p class="pre-risk-notices">'+esc(a.notices.join('; '))+'</p>':'')+
       '<small>แสดงเหตุผลประกอบ ไม่ใช่คำสั่งให้ Bridging อัตโนมัติ</small>';
   }
@@ -531,13 +591,14 @@
   }
   function switchFields(){
     const drug=val('preDrug'),ind=val('preIndication'),bridge=val('preBridge')==='yes';
-    updateGuidelineSummary();showThrombotic();updateBleedingRiskSummary();refreshAfBridgeReasons();refreshLmwhStatus();
+    updateGuidelineSummary();showThrombotic();updateBleedingRiskSummary();refreshAfBridgeReasons();refreshVteBridgeReasons();refreshLmwhStatus();
     showAsra();
     $('preWarfarinFields').classList.toggle('hidden',drug!=='warfarin');
     targetWrap.classList.toggle('hidden',val('preTargetInr')!=='other');
     $('preApixFields').classList.toggle('hidden',drug!=='apixaban');
     $('preBridgeFields').classList.toggle('hidden',drug!=='warfarin'||!bridge);
     $('preAFBridgeOverride').classList.toggle('hidden',!(drug==='warfarin'&&ind==='af'&&bridge));
+    $('preVTEBridgeOverride').classList.toggle('hidden',!(drug==='warfarin'&&ind==='vte'&&bridge));
     $('preApixOtherWrap').classList.toggle('hidden',val('preApixDose')!=='other');
     $('preAFExtra').classList.toggle('hidden',ind!=='af');
     $('preValveExtra').classList.toggle('hidden',ind!=='mechanical');
