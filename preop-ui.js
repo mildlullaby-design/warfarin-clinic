@@ -966,7 +966,7 @@
     if(remainingPrintBlockers(p,blockers).length)return;
     const reviewedUndated=checked('preDateUnknown')&&!p.operationDate;
     $('preStatus').textContent=reviewedUndated
-      ?'Reviewed undated A4 — ต้องระบุและตรวจสอบวันที่ก่อนใช้'
+      ?'Reviewed undated A4 — ยังไม่ทราบวันผ่าตัด · ต้องระบุและตรวจสอบวันที่ก่อนใช้'
       :'Final A4 - physician reviewed';
     printPlan(p,v,false,reviewedUndated);
   };
