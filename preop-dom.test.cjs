@@ -425,3 +425,32 @@ test('New patient resets unknown-date checkbox and re-enables date',()=>{
   assert.equal(d.getElementById('preDate').disabled,false);
   dom.window.close();
 });
+
+test('VTE history of clot during previous interruption updates visible risk from Low to High',()=>{
+  const dom=openPreop(),d=dom.window.document;
+  const set=(id,value)=>{
+    const e=d.getElementById(id);
+    e.value=value;
+    e.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  };
+  set('preDrug','warfarin');
+  set('preIndication','vte');
+  set('preVTETime','gt12');
+  set('preVTEType','dvt');
+  set('preVTERecur','no');
+  set('preVTEThromb','none');
+  set('preVTECancer','none');
+  set('preVTEClot','no');
+  assert.match(d.getElementById('preThromboticResult').textContent,/LOW/);
+  assert.equal(d.getElementById('preBridge').value,'no');
+  set('preVTEClot','yes');
+  const risk=d.getElementById('preThromboticResult').textContent;
+  assert.match(risk,/HIGH/);
+  assert.match(risk,/VTE during previous interruption/);
+  assert.doesNotMatch(risk,/\(review\)/i);
+  assert.match(risk,/clinical override/i);
+  assert.equal(d.getElementById('preBridge').value,'no','risk must not auto-select bridging');
+  const table=d.getElementById('preRiskTable').textContent;
+  assert.match(table,/prior VTE during interruption/);
+  dom.window.close();
+});
