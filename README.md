@@ -25,7 +25,7 @@ For local development with Node.js 22:
 ```sh
 node --test preop-core.test.cjs preop-risk.test.cjs
 npm install --no-save --no-package-lock --ignore-scripts jsdom@26
-node --test preop-dom.test.cjs tests/preop-core.test.js
+node --test preop-dom.test.cjs
 ```
 
 ## Safety
