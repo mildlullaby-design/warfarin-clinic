@@ -9,7 +9,7 @@ test('date conversion Gregorian to Buddhist era',()=>{assert.equal(C.thaiDate('2
 test('invalid dates rejected',()=>assert.throws(()=>C.iso('2026-02-30')));
 test('CKD Cockcroft-Gault arithmetic',()=>assert.ok(Math.abs(C.crclCG(60,'female',60,1.2)-47.22)<0.01));
 test('C01 warfarin AF low/moderate, no bridge = prose + 5-day hold',()=>{const a=p({});assert.equal(a.layout,'concise-prose');assert.equal(a.holdDays,5);assert.equal(a.bridging,false);assert.equal(a.days.length,0);assert.ok(a.instructions.join(' ').includes('07/11/2569'));});
-test('C02 recent stroke triggers physician review',()=>assert.ok(p({recentStroke:'yes'}).blockers.length>0));
+test('C02 recent stroke triggers physician warning without mislabeling an input as missing',()=>assert.ok(p({recentStroke:'yes'}).warnings.some(x=>x.includes('Exceptional'))));
 test('C03 mechanical mitral major bridge = 14 day conditional grid',()=>{
  const a=p({indication:'mechanical',valvePosition:'mitral',bleedingRisk:'high',bridgeChoice:'yes',bridgeConfirmed:true,riskReviewed:true,weightKg:53,crCl:65,lmwhMgPerKg:1});
  assert.equal(a.bridging,true);assert.equal(a.layout,'bridging-grid');assert.equal(a.days.length,14);
@@ -19,7 +19,7 @@ test('C03 mechanical mitral major bridge = 14 day conditional grid',()=>{
 });
 test('C04 mechanical valve low/mod not automatic four-day hold',()=>assert.ok(p({indication:'mechanical'}).blockers.some(x=>x.includes('Mechanical valve'))));
 test('C05 minimal warfarin continue',()=>{const a=p({bleedingRisk:'minimal',indication:'mechanical'});assert.equal(a.action,'continue');assert.equal(a.layout,'concise-prose')});
-test('C06 recent VTE review',()=>assert.ok(p({indication:'vte',recentVTE:'yes'}).blockers.length>0));
+test('C06 recent VTE produces risk warning, not missing-time blocker',()=>{const x=p({indication:'vte',recentVTE:'yes'});assert.ok(x.warnings.some(w=>w.includes('Exceptional')));assert.equal(x.blockers.length,0);});
 test('C07 CrCl 22 blocks automatic therapeutic LMWH',()=>assert.ok(p({indication:'mechanical',bleedingRisk:'high',riskReviewed:true,bridgeChoice:'yes',bridgeConfirmed:true,weightKg:53,crCl:22}).blockers.some(x=>x.includes('CrCl <30'))));
 test('C08 apixaban minimal continue, no grid',()=>{const a=C.plan({...ap,bleedingRisk:'minimal'});assert.equal(a.action,'continue');assert.equal(a.days.length,0)});
 test('C09 apixaban high bleed, restart window',()=>{const a=C.plan({...ap,bleedingRisk:'high'});assert.equal(a.holdDays,2);assert.equal(a.layout,'concise-prose');assert.ok(a.instructions.join(' ').includes('14/11/2569'));assert.ok(a.instructions.join(' ').includes('15/11/2569'))});
@@ -36,7 +36,7 @@ test('C15 no operation date blocks Final',()=>{const a=p({operationDate:''});ass
 test('C16 dated prose without bridge',()=>{const a=C.plan({...ap,bleedingRisk:'high'});assert.ok(a.instructions.join(' ').includes('10/11/2569'));});
 test('C17 73 mg dose needs two single-use ampoules',()=>{const a=C.enoxaparin(73,1);assert.equal(a.volume,'0.73');assert.equal(a.ampoules,2);});
 test('C18 weekly-only does not invent daily regimen',()=>{const a=p({weeklyDose:20});assert.equal(a.days.length,0);assert.ok(a.instructions.join(' ').includes('Do not infer'));});
-test('C19 final confirmation revision mismatch requires reconfirmation by UI',()=>{const a=p({});assert.equal(a.canFinalize,false);assert.equal(C.plan({...base,physicianConfirmed:true}).canFinalize,true)});
+test('C19 engine eligibility independent of final physician click (handled by UI)',()=>{const a=p({});assert.equal(a.canFinalize,true);assert.equal(a.draft,false);});
 test('C21 unclassified procedure risk blocks final',()=>assert.ok(p({bleedingRisk:''}).blockers.length>0));
 test('C22 unknown anesthesia uses note, not ASRA-72 automatic',()=>{const a=C.plan({...ap,bleedingRisk:'high',neuraxial:'unknown'});assert.equal(a.holdDays,2);assert.ok(a.warnings.join(' ').includes('ASRA'));});
 test('no dose calculation on invalid weight',()=>assert.equal(C.enoxaparin('',1),null));
