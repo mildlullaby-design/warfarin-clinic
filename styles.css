@@ -1887,3 +1887,25 @@ button, input, select, summary { scroll-margin-bottom: 90px; }
   }
   .preop-module .pre-vte-risk-layers{display:grid;gap:3px;}
 }
+
+/* A4 one-page footer fit: print layout only.
+   Preserve all 15 calendar rows, their font size, and the 22mm signing area.
+   The previous 1.65mm top/bottom cell padding could push the unsplittable
+   signature/reference footer onto a second sheet despite ample table space. */
+@media print {
+  #prePrintExport .pre-print-grid th,
+  #prePrintExport .pre-print-grid td {
+    padding:1.05mm 2mm!important;
+  }
+  #prePrintExport .pre-print-footer {
+    margin-top:1.5mm!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+  #prePrintExport .pre-signature-write-zone {
+    height:22mm!important;
+  }
+  #prePrintExport .pre-reference-line {
+    margin-top:2mm!important;
+  }
+}
