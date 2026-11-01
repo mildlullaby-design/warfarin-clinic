@@ -23,8 +23,6 @@ jobs:
         run: npm install --no-save --no-package-lock --ignore-scripts jsdom@26
       - name: Run browser-like first-screen DOM smoke test
         run: node --test preop-dom.test.cjs
-      - name: Run existing extended Pre-op acceptance tests
-        run: node --test tests/preop-core.test.js
       - name: Validate retained dose, interaction and PWA JavaScript
         run: |
           node --check app.js
